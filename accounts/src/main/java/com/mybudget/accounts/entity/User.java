@@ -6,7 +6,7 @@ import lombok.*;
 @Entity
 @Getter @Setter @ToString @AllArgsConstructor @NoArgsConstructor
 @Table(name = "users")
-public class User {
+public class User extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
@@ -17,6 +17,8 @@ public class User {
     private String email;
 
     private String password;
+
+    private String mobileNumber;
 
     private Long balance;
 

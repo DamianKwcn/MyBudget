@@ -2,6 +2,7 @@ package com.mybudget.accounts.controller;
 
 import com.mybudget.accounts.constants.UserConstants;
 import com.mybudget.accounts.dto.ResponseDto;
+import com.mybudget.accounts.dto.UserDto;
 import com.mybudget.accounts.dto.UserRegisterDto;
 import com.mybudget.accounts.service.implementation.UserServiceImpl;
 import jakarta.validation.Valid;
@@ -20,6 +21,14 @@ public class UserController {
 
     public UserController(UserServiceImpl userService) {
         this.userService = userService;
+    }
+
+    @GetMapping("/user")
+    public ResponseEntity<UserDto> getUser(@RequestParam String mobileNumber) {
+        UserDto userDto = userService.getUser(mobileNumber);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(userDto);
     }
 
     @PostMapping("/create")

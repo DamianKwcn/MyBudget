@@ -1,8 +1,7 @@
 package com.mybudget.accounts.constants;
 
 public class UserConstants {
-    private UserConstants() {
-    }
+    private UserConstants() {}
 
     public static final String  STATUS_201 = "201";
     public static final String  MESSAGE_201 = "Account created successfully";

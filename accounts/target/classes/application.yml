@@ -2,10 +2,10 @@ server:
   port: 8080
 spring:
   application:
-    name: "user"
+    name: "users"
 
   datasource:
-    url: jdbc:h2:mem:userdb
+    url: jdbc:h2:mem:usersdb
     driverClassName: org.h2.Driver
     username: sa
     password:

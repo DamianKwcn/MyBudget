@@ -18,4 +18,6 @@ public class UserRegisterDto {
     @NotEmpty(message = "Password can not be empty")
     @Size(min = 8, message = "The length of the password can not be shorter than 8 characters")
     private String password;
+
+    private String mobileNumber;
 }

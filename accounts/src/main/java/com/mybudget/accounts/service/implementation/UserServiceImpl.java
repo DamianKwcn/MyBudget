@@ -1,5 +1,6 @@
 package com.mybudget.accounts.service.implementation;
 
+import com.mybudget.accounts.dto.UserDto;
 import com.mybudget.accounts.dto.UserRegisterDto;
 import com.mybudget.accounts.entity.User;
 import com.mybudget.accounts.exception.ResourceNotFoundException;
@@ -21,12 +22,21 @@ public class UserServiceImpl implements UserService {
     @Override
     public void createUser(UserRegisterDto userRegisterDto) {
         User user = UserMapper.mapToUser(userRegisterDto, new User());
-        Optional<User> optionalUser = userRepository.findByEmail(userRegisterDto.getEmail());
+        Optional<User> optionalUser = userRepository.findByMobileNumber(userRegisterDto.getMobileNumber());
         if (optionalUser.isPresent()) {
-            throw new UserAlreadyExistsException("User with this email already exists");
+            throw new UserAlreadyExistsException("User with this mobile number already exists");
         }
         user.setBalance(0L);
         userRepository.save(user);
+    }
+
+    @Override
+    public UserDto getUser(String mobileNumber) {
+        User user = userRepository.findByMobileNumber(mobileNumber).orElseThrow(
+                () -> new ResourceNotFoundException("User", "mobileNumber", mobileNumber)
+        );
+        UserDto userDto = UserMapper.mapToUserDto(user, new UserDto());
+        return userDto;
     }
 
     @Override
