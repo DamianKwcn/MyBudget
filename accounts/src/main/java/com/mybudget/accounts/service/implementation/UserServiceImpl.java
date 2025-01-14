@@ -25,21 +25,33 @@ public class UserServiceImpl implements UserService {
         if (optionalUser.isPresent()) {
             throw new UserAlreadyExistsException("User with this email already exists");
         }
-        user.setBalance(0L);
         userRepository.save(user);
     }
 
     @Override
     public boolean deleteUser(Long userId) {
-        User user = userRepository.findByUserId(userId).orElseThrow(
-                () -> new ResourceNotFoundException("User", "id", userId.toString())
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new ResourceNotFoundException("User", "id", userId)
         );
-        userRepository.deleteByUserId(user.getUserId());
+        userRepository.deleteById(user.getId());
         return true;
     }
 
     @Override
     public boolean updateUser(UserRegisterDto userRegisterDto) {
         return false;
+    }
+
+    public User getOrCreateProfile(String keycloakSub, String email, String firstName, String lastName, String username) {
+        return userRepository.findByKeycloakSub(keycloakSub)
+                .orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setKeycloakSub(keycloakSub);
+                    newUser.setEmail(email);
+                    newUser.setFirstName(firstName);
+                    newUser.setLastName(lastName);
+                    newUser.setUsername(username);
+                    return userRepository.save(newUser);
+                });
     }
 }

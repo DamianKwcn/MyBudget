@@ -5,16 +5,14 @@ import com.mybudget.accounts.entity.User;
 
 public class UserMapper {
     public static User mapToUser(UserRegisterDto userRegisterDto, User user) {
-        user.setName(userRegisterDto.getName());
+        user.setFirstName(userRegisterDto.getName());
         user.setEmail(userRegisterDto.getEmail());
-        user.setPassword(userRegisterDto.getPassword());
         return user;
     }
 
     public static UserRegisterDto mapToUserDto(User user, UserRegisterDto userRegisterDto) {
-        userRegisterDto.setName(user.getName());
+        userRegisterDto.setName(user.getFirstName());
         userRegisterDto.setEmail(user.getEmail());
-        userRegisterDto.setPassword(user.getPassword());
         return userRegisterDto;
     }
 }

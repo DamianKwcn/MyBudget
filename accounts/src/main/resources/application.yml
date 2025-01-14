@@ -1,21 +1,39 @@
 server:
   port: 8080
+
 spring:
   application:
-    name: "user"
+    name: "accounts"
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: "http://localhost:7080/realms/my-budget/protocol/openid-connect/certs"
+      client:
+        registration:
+          keycloak:
+            client-id: my-budget
+            client-secret: 27MKXKTXNCVLIJLazGSDtjNq6WZbOz6H
+            scope: openid
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
+            client-name: Keycloak
+        provider:
+          keycloak:
+            authorization-uri: "http://localhost:7080/auth/realms/my-budget/protocol/openid-connect/auth"
+            token-uri: "http://localhost:7080/auth/realms/my-budget/protocol/openid-connect/token"
+            user-info-uri: "http://localhost:7080/auth/realms/my-budget/protocol/openid-connect/userinfo"
+            jwk-set-uri: "http://localhost:7080/auth/realms/my-budget/protocol/openid-connect/certs"
 
   datasource:
-    url: jdbc:h2:mem:userdb
-    driverClassName: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
+    url: jdbc:mysql://localhost:3306/accountdb
+    driverClassName: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 1234
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQLDialect
     show-sql: true
   config:
     import: "optional:configserver:http://localhost:8071/"
@@ -53,14 +71,21 @@ eureka:
     serviceUrl:
       defaultZone: http://localhost:8070/eureka/
 
-info:
-  app:
-    name: "accounts"
-    description: "MyBudget Accounts Application"
-    version: "0.0.1"
-
 logging:
   level:
     com:
       mybudget:
         accounts: DEBUG
+
+keycloak:
+  realm: my-budget
+  resource: my-budget
+  auth-server-url: "http://localhost:7080/auth"
+  credentials:
+    secret: 27MKXKTXNCVLIJLazGSDtjNq6WZbOz6H
+
+info:
+  app:
+    name: "accounts"
+    description: "MyBudget Accounts Application"
+    version: "0.0.1"
