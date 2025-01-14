@@ -9,15 +9,19 @@ import lombok.*;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
-    private Long userId;
+    private Long id;
 
-    private String name;
+    @Column(name = "keycloak_sub", nullable = false, unique = true)
+    private String keycloakSub;
+
+    @Column(name = "given_name")
+    private String firstName;
+
+    @Column(name = "family_name")
+    private String lastName;
+
+    @Column(name = "preferred_username")
+    private String username;
 
     private String email;
-
-    private String password;
-
-    private Long balance;
-
 }

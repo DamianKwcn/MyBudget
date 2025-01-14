@@ -1,6 +1,10 @@
+server:
+  port: 8072
+
 spring:
   application:
     name: "gateway"
+
   config:
     import: "optional:configserver:http://localhost:8071/"
   cloud:
@@ -9,6 +13,18 @@ spring:
         locator:
           enabled: false
           lowerCaseServiceId: true
+  data:
+    redis:
+      connect-timeout: 2s
+      host: localhost
+      port: 6379
+      timeout: 1s
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: "http://localhost:7080/realms/my-budget/protocol/openid-connect/certs"
 
 management:
   endpoints:
@@ -18,13 +34,21 @@ management:
   endpoint:
     gateway:
       enabled: true
+    circuitbreakers:
+      enabled: true
+
   info:
     env:
       enabled: true
 
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8070/eureka/
+
 info:
   app:
-    name: "gatewayserver"
+    name: "gateway"
     description: "MyBudget Gateway Server Application"
     version: "0.0.1"
 
@@ -33,4 +57,15 @@ logging:
     com:
       mybudget:
         gateway: DEBUG
+  pattern:
+    level: "%5p [${spring.application.name},%X{trace_id},%X{span_id}]"
+
+resilience4j.circuitbreaker:
+  configs:
+    default:
+      registerHealthIndicator: true
+      slidingWindowSize: 10
+      permittedNumberOfCallsInHalfOpenState: 2
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10000
 
