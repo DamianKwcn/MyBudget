@@ -10,10 +10,11 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByUserId(Long userId);
+    Optional<User> findByKeycloakSub(String keycloakSub);
+    Optional<User> findById(Long id);
     Optional<User> findByEmail(String email);
 
     @Transactional
     @Modifying
-    void deleteByUserId(Long userId);
+    void deleteById(Long id);
 }
