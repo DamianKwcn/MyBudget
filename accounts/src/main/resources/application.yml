@@ -12,7 +12,7 @@ spring:
       client:
         registration:
           keycloak:
-            client-id: my-budget
+            client-id: my-budget-ac
             client-secret: 27MKXKTXNCVLIJLazGSDtjNq6WZbOz6H
             scope: openid
             authorization-grant-type: authorization_code
@@ -50,7 +50,7 @@ management:
       enabled: true
   endpoint:
     shutdown:
-      enabled: true
+      access: unrestricted
     health:
       probes:
         enabled: true
@@ -66,7 +66,7 @@ eureka:
   instance:
     preferIpAddress: true
   client:
-    fetchRegistry: true
+    fetchRegistry: false
     registerWithEureka: true
     serviceUrl:
       defaultZone: http://localhost:8070/eureka/
@@ -76,6 +76,7 @@ logging:
     com:
       mybudget:
         accounts: DEBUG
+      netflix.discovery: DEBUG
 
 keycloak:
   realm: my-budget
@@ -83,6 +84,18 @@ keycloak:
   auth-server-url: "http://localhost:7080/auth"
   credentials:
     secret: 27MKXKTXNCVLIJLazGSDtjNq6WZbOz6H
+
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled=true:
+
+resilience4j.ratelimiter:
+  configs:
+    default:
+      timeoutDuration: 1000
+      limitRefreshPeriod: 5000
+      limitForPeriod: 2
 
 info:
   app:

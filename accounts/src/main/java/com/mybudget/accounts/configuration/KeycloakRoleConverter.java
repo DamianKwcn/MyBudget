@@ -1,4 +1,4 @@
-package com.mybudget.accounts.conf;
+package com.mybudget.accounts.configuration;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.core.GrantedAuthority;
@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class KeycloakRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
-
     @Override
     @SuppressWarnings("unchecked")
     public Collection<GrantedAuthority> convert(Jwt jwt) {
@@ -27,7 +26,6 @@ public class KeycloakRoleConverter implements Converter<Jwt, Collection<GrantedA
                 .map(roleName -> "ROLE_" + roleName)
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
-
         return returnValue;
     }
 }
