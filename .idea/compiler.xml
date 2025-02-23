@@ -8,29 +8,20 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="eurekaserver" />
-        <module name="accounts" />
         <module name="configserver" />
+        <module name="accounts" />
         <module name="transactions" />
         <module name="gateway" />
         <module name="keycloak-event-listener" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="authentication" target="17" />
-      <module name="event-listener" target="17" />
-      <module name="sample_event_listener" target="1.8" />
-    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="accounts" options="-parameters" />
-      <module name="authentication" options="-parameters" />
       <module name="configserver" options="-parameters" />
       <module name="eurekaserver" options="-parameters" />
-      <module name="event-listener" options="-parameters" />
       <module name="gateway" options="-parameters" />
-      <module name="keycloak-event-listener" options="" />
-      <module name="sample_event_listener" options="-Xlint:unchecked" />
       <module name="transactions" options="-parameters" />
     </option>
   </component>
