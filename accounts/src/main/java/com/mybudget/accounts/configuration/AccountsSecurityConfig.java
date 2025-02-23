@@ -27,13 +27,16 @@ public class AccountsSecurityConfig {
         http.sessionManagement(sessionConfig -> sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(csrfConfig -> csrfConfig.csrfTokenRequestHandler(csrfTokenRequestAttributeHandler)
                         .ignoringRequestMatchers("/api/user/initialize")
+                        .ignoringRequestMatchers("/api/user/delete")
+                        .ignoringRequestMatchers("/actuator/**")
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .requiresChannel(rcc -> rcc.anyRequest().requiresInsecure())
                 .authorizeHttpRequests(
                         (requests) -> requests
-                        .requestMatchers("/api/user/initialize").permitAll()
+                                .requestMatchers("/actuator/**").permitAll()
+                                .requestMatchers("/api/user/initialize").permitAll()
                                 .anyRequest().authenticated()
                 );
         http.oauth2ResourceServer(rsc -> rsc.jwt(jwtConfigurer ->

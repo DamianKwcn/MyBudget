@@ -42,8 +42,17 @@ public class GatewayApplication {
 												.setKeyResolver(userKeyResolver()))
 								.circuitBreaker(config -> config.setName("accountsCircuitBreaker")
 										.setFallbackUri("forward:/contactSupport")))
+						.uri("lb://ACCOUNTS"))
+				.route(p -> p
+						.path("/mybudget/transactions/**")
+						.filters(f -> f.rewritePath("/mybudget/transactions/(?<segment>.*)","/${segment}")
+								.addResponseHeader("X-Response-Time", LocalDateTime.now().toString())
+								.requestRateLimiter(config -> config.setRateLimiter(redisRateLimiter())
+										.setKeyResolver(userKeyResolver()))
+								.circuitBreaker(config -> config.setName("transactionsCircuitBreaker")
+										.setFallbackUri("forward:/contactSupport")))
+						.uri("lb://TRANSACTIONS")).build();
 
-						.uri("lb://ACCOUNTS")).build();
 	}
 
 	@Bean
@@ -56,7 +65,7 @@ public class GatewayApplication {
 
 	@Bean
 	public RedisRateLimiter redisRateLimiter() {
-		return new RedisRateLimiter(1, 1, 1);
+		return new RedisRateLimiter(10, 20, 1);
 	}
 
 	@Bean

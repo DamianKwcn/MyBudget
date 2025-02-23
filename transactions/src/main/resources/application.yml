@@ -1,0 +1,104 @@
+server:
+  port: ${SERVER_PORT}
+
+spring:
+  application:
+    name: "transactions"
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: "${KEYCLOAK_JWK_SET_URI}"
+      client:
+        registration:
+          keycloak:
+            client-id: ${KEYCLOAK_CLIENT_ID}
+            client-secret: ${KEYCLOAK_CLIENT_SECRET}
+            scope: openid
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
+            client-name: Keycloak
+        provider:
+          keycloak:
+            authorization-uri: "${KEYCLOAK_AUTHORIZATION_URI}"
+            token-uri: "${KEYCLOAK_TOKEN_URI}"
+            user-info-uri: "${KEYCLOAK_USERINFO_URI}"
+            jwk-set-uri: "${KEYCLOAK_JWK_SET_URI}"
+
+  datasource:
+    url: ${DB_URL}
+    driverClassName: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQLDialect
+    show-sql: true
+  config:
+    import: "optional:configserver:${CONFIG_SERVER_URL}"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  health:
+    readiness-state:
+      enabled: true
+    liveness-state:
+      enabled: true
+  endpoint:
+    shutdown:
+      access: unrestricted
+    health:
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: true
+
+endpoints:
+  shutdown:
+    enabled: true
+
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    fetchRegistry: false
+    registerWithEureka: true
+    serviceUrl:
+      defaultZone: ${EUREKA_DEFAULT_ZONE}
+
+logging:
+  level:
+    com:
+      mybudget:
+        transactions: DEBUG
+      netflix.discovery: DEBUG
+
+keycloak:
+  realm: ${KEYCLOAK_REALM}
+  resource: ${KEYCLOAK_RESOURCE}
+  auth-server-url: "${KEYCLOAK_AUTH_SERVER_URL}"
+  credentials:
+    secret: ${KEYCLOAK_SECRET}
+
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled=true:
+
+resilience4j.ratelimiter:
+  configs:
+    default:
+      timeoutDuration: 1000
+      limitRefreshPeriod: 5000
+      limitForPeriod: 10
+
+info:
+  app:
+    name: "transactions"
+    description: "MyBudget Transactions Application"
+    version: "0.0.1"

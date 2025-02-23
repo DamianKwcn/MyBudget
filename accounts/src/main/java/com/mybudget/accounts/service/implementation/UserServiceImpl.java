@@ -5,6 +5,8 @@ import com.mybudget.accounts.exception.BalanceAlreadySetException;
 import com.mybudget.accounts.exception.ResourceNotFoundException;
 import com.mybudget.accounts.repository.UserRepository;
 import com.mybudget.accounts.service.UserService;
+import com.mybudget.accounts.service.client.TransactionFeignClient;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,46 +19,112 @@ import java.math.BigDecimal;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
+    private final TransactionFeignClient transactionFeignClient;
 
     @Override
     public User findUserByKeycloakSub(String keycloakSub) {
+        logger.debug("Searching for user with keycloakSub: {}", keycloakSub);
         return userRepository.findByKeycloakSub(keycloakSub)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "keycloakSub", keycloakSub));
+                .orElseThrow(() -> {
+                    logger.warn("User not found with keycloakSub: {}", keycloakSub);
+                    return new ResourceNotFoundException("User", "keycloakSub", keycloakSub);
+                });
     }
 
+    @Transactional
     @Override
     public void createUser(String keycloakSub, String email, String username) {
+        logger.info("Creating user with keycloakSub: {}, email: {}, username: {}", keycloakSub, email, username);
+
+        if (userRepository.findByKeycloakSub(keycloakSub).isPresent()) {
+            logger.warn("User with keycloakSub: {} already exists. Creation aborted.", keycloakSub);
+            return;
+        }
+
         User user = new User();
         user.setKeycloakSub(keycloakSub);
         user.setEmail(email);
         user.setUsername(username);
         user.setBalance(BigDecimal.ZERO);
         userRepository.save(user);
-        logger.info("Created new user with keycloakSub: {}", keycloakSub);
+
+        logger.info("User successfully created with keycloakSub: {}", keycloakSub);
     }
 
+    @Transactional
     @Override
     public void setBalance(String keycloakSub, BigDecimal balance) {
+        logger.info("Setting balance for user with keycloakSub: {} to amount: {}", keycloakSub, balance);
+
         User user = findUserByKeycloakSub(keycloakSub);
-        logger.info("Attempting to set balance for user with keycloakSub: {}", keycloakSub);
 
         if (user.getBalance() != null && user.getBalance().compareTo(BigDecimal.ZERO) > 0) {
-            logger.warn("Balance already set for user with keycloakSub: {}", keycloakSub);
-            throw new BalanceAlreadySetException("Balance already set for user with keycloakSub: " + keycloakSub);
+            logger.warn("Balance already set for user with keycloakSub: {}. Current balance: {}", keycloakSub, user.getBalance());
+            throw new BalanceAlreadySetException("Balance", "keycloakSub", keycloakSub);
         }
+
         user.setBalance(balance);
         userRepository.save(user);
-        logger.info("Successfully set balance for user with keycloakSub: {}, amount: {}", keycloakSub, balance);
+        logger.info("Balance successfully set for user with keycloakSub: {}. New balance: {}", keycloakSub, balance);
     }
 
-    @Override
-    public boolean deleteUser(String keycloakSub) {
-        User user = findUserByKeycloakSub(keycloakSub);
-        if (user == null) {
-            throw new ResourceNotFoundException("User", "keycloakSub", keycloakSub);
-        }
+    @Transactional
+    public void deleteUserAndTransactions(String keycloakSub) {
+        User user = userRepository.findByKeycloakSub(keycloakSub)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "keycloakSub", keycloakSub));
         userRepository.delete(user);
-        return true;
+        transactionFeignClient.deleteAllTransactions(keycloakSub);
+
+    }
+
+    @Transactional
+    @Override
+    public void updateBalance(String keycloakSub, BigDecimal amount, boolean isIncome) {
+        logger.info("Updating balance for user with keycloakSub: {}, amount: {}, isIncome: {}", keycloakSub, amount, isIncome);
+
+        User user = findUserByKeycloakSub(keycloakSub);
+
+        if (user.getBalance() == null) {
+            logger.warn("User with keycloakSub: {} has null balance. Initializing to 0.", keycloakSub);
+            user.setBalance(BigDecimal.ZERO);
+        }
+
+        BigDecimal oldBalance = user.getBalance();
+        BigDecimal newBalance = isIncome ? oldBalance.add(amount) : oldBalance.subtract(amount);
+
+        if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+            logger.warn("Insufficient funds for user with keycloakSub: {}. Current balance: {}, attempted withdrawal: {}", keycloakSub, oldBalance, amount);
+            throw new IllegalArgumentException("Insufficient funds");
+        }
+
+        user.setBalance(newBalance);
+        userRepository.save(user);
+        logger.info("Balance updated for user with keycloakSub: {}. Old balance: {}, New balance: {}", keycloakSub, oldBalance, newBalance);
+    }
+
+    @Transactional
+    @Override
+    public void updateBalanceAfterDelete(String keycloakSub, BigDecimal amount, boolean isIncome) {
+        logger.info("Updating balance for user with keycloakSub: {}, amount: {}, isIncome: {}", keycloakSub, amount, isIncome);
+
+        User user = findUserByKeycloakSub(keycloakSub);
+
+        if (user.getBalance() == null) {
+            logger.warn("User with keycloakSub: {} has null balance. Initializing to 0.", keycloakSub);
+            user.setBalance(BigDecimal.ZERO);
+        }
+
+        BigDecimal oldBalance = user.getBalance();
+        BigDecimal newBalance = isIncome ? oldBalance.subtract(amount) : oldBalance.add(amount);
+
+        if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+            logger.warn("Insufficient funds for user with keycloakSub: {}. Current balance: {}, attempted withdrawal: {}", keycloakSub, oldBalance, amount);
+            throw new IllegalArgumentException("Insufficient funds");
+        }
+
+        user.setBalance(newBalance);
+        userRepository.save(user);
+        logger.info("Balance updated for user with keycloakSub: {}. Old balance: {}, New balance: {}", keycloakSub, oldBalance, newBalance);
     }
 }

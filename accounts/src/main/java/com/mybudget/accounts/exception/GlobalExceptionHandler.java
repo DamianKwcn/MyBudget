@@ -64,4 +64,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         );
         return new ResponseEntity<>(errorResponseDTO, HttpStatus.NOT_FOUND);
     }
+
+    @ExceptionHandler(BalanceAlreadySetException.class)
+    public ResponseEntity<ErrorResponseDto> handleBalanceAlreadySetException(BalanceAlreadySetException exception,
+                                                                            WebRequest webRequest) {
+        ErrorResponseDto errorResponseDTO = new ErrorResponseDto(
+                webRequest.getDescription(false),
+                HttpStatus.NOT_ACCEPTABLE,
+                exception.getMessage(),
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponseDTO, HttpStatus.NOT_ACCEPTABLE);
+    }
 }

@@ -20,6 +20,7 @@ public class MyCustomEventListenerProviderFactory implements EventListenerProvid
         this.baseUrl = config.get("baseUrl", "http://host.docker.internal:8080/api/user");
     }
 
+
     @Override
     public void postInit(KeycloakSessionFactory factory) {}
 

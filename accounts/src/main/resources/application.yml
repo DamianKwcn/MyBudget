@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT}
 
 spring:
   application:
@@ -8,35 +8,35 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: "http://localhost:7080/realms/my-budget/protocol/openid-connect/certs"
+          jwk-set-uri: "${KEYCLOAK_JWK_SET_URI}"
       client:
         registration:
           keycloak:
-            client-id: my-budget-ac
-            client-secret: 27MKXKTXNCVLIJLazGSDtjNq6WZbOz6H
+            client-id: ${KEYCLOAK_CLIENT_ID}
+            client-secret: ${KEYCLOAK_CLIENT_SECRET}
             scope: openid
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
             client-name: Keycloak
         provider:
           keycloak:
-            authorization-uri: "http://localhost:7080/auth/realms/my-budget/protocol/openid-connect/auth"
-            token-uri: "http://localhost:7080/auth/realms/my-budget/protocol/openid-connect/token"
-            user-info-uri: "http://localhost:7080/auth/realms/my-budget/protocol/openid-connect/userinfo"
-            jwk-set-uri: "http://localhost:7080/auth/realms/my-budget/protocol/openid-connect/certs"
+            authorization-uri: "${KEYCLOAK_AUTHORIZATION_URI}"
+            token-uri: "${KEYCLOAK_TOKEN_URI}"
+            user-info-uri: "${KEYCLOAK_USERINFO_URI}"
+            jwk-set-uri: "${KEYCLOAK_JWK_SET_URI}"
 
   datasource:
-    url: jdbc:mysql://localhost:3306/accountdb
+    url: ${DB_URL}
     driverClassName: com.mysql.cj.jdbc.Driver
-    username: root
-    password: 1234
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
     database-platform: org.hibernate.dialect.MySQLDialect
     show-sql: true
   config:
-    import: "optional:configserver:http://localhost:8071/"
+    import: "optional:configserver:${CONFIG_SERVER_URL}"
 
 management:
   endpoints:
@@ -69,7 +69,7 @@ eureka:
     fetchRegistry: false
     registerWithEureka: true
     serviceUrl:
-      defaultZone: http://localhost:8070/eureka/
+      defaultZone: ${EUREKA_DEFAULT_ZONE}
 
 logging:
   level:
@@ -79,11 +79,11 @@ logging:
       netflix.discovery: DEBUG
 
 keycloak:
-  realm: my-budget
-  resource: my-budget
-  auth-server-url: "http://localhost:7080/auth"
+  realm: ${KEYCLOAK_REALM}
+  resource: ${KEYCLOAK_RESOURCE}
+  auth-server-url: "${KEYCLOAK_AUTH_SERVER_URL}"
   credentials:
-    secret: 27MKXKTXNCVLIJLazGSDtjNq6WZbOz6H
+    secret: ${KEYCLOAK_SECRET}
 
   cloud:
     openfeign:
@@ -95,7 +95,7 @@ resilience4j.ratelimiter:
     default:
       timeoutDuration: 1000
       limitRefreshPeriod: 5000
-      limitForPeriod: 2
+      limitForPeriod: 10
 
 info:
   app:

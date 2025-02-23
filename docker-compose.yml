@@ -4,18 +4,18 @@ services:
   mysql-kc:
     image: mysql:8.0.27
     container_name: mysql-kc
+    env_file: "dock.env"
     ports:
       - "3306:3306"
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: 1234
-
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - keycloak-and-mysql-volume:/var/lib/mysql
     networks:
       - keycloak-and-mysql-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p1234"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -23,35 +23,27 @@ services:
   keycloak-w:
     image: quay.io/keycloak/keycloak:25.0.0
     container_name: keycloak-w
-
-    # Komenda "start-dev" (tylko do developmentu)
+    env_file: "dock.env"
     command: start-dev
-
     ports:
       - "7080:8080"
     restart: unless-stopped
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_DB: mysql
-      KC_DB_USERNAME: root
-      KC_DB_PASSWORD: 1234
-      KC_DB_URL: jdbc:mysql://mysql-kc:3306/keycloak
-
+      KC_DB_USERNAME: ${KC_DB_USERNAME}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KC_DB_URL: ${KC_DB_URL}
       KC_FEATURES: token-exchange,admin-fine-grained-authz
-      KC_HOSTNAME: localhost
-
-    # KLUCZOWA część: montujemy lokalny folder my-providers do /opt/keycloak/providers w kontenerze
+      KC_HOSTNAME: ${KC_HOSTNAME}
     volumes:
       - ./my-providers:/opt/keycloak/providers
-
     networks:
       - keycloak-and-mysql-network
     depends_on:
       mysql-kc:
         condition: service_healthy
-
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080"]
       interval: 10s
@@ -63,3 +55,6 @@ networks:
 
 volumes:
   keycloak-and-mysql-volume:
+
+#docker compose --env-file dock.env up -d
+

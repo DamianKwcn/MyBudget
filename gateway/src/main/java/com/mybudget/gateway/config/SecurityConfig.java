@@ -34,6 +34,8 @@ public class SecurityConfig {
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers("/actuator/**").permitAll()
                         .pathMatchers("/mybudget/accounts/api/user/initialize").permitAll()
+                        .pathMatchers("/mybudget/accounts/**").hasRole("ACCOUNTS")
+                        .pathMatchers("/mybudget/transactions/**").hasRole("TRANSACTIONS")
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

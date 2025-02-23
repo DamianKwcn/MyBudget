@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
@@ -14,7 +15,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
-public class UserRegistrationController {
+public class UserKeycloakListenerController {
     private final UserRepository userRepository;
     private final UserService userService;
 
@@ -25,7 +26,11 @@ public class UserRegistrationController {
         private String givenName;
         private String familyName;
         private String preferredUsername;
+    }
 
+    @Getter
+    public static class DeleteUserRequest {
+        private String keycloakSub;
     }
 
     @PostMapping("/initialize")
@@ -45,4 +50,13 @@ public class UserRegistrationController {
                 .status(HttpStatus.CREATED)
                 .body("User created successfully.");
     }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<Void> deleteUser(JwtAuthenticationToken jwtAuthToken) {
+        String keycloakSub = jwtAuthToken.getToken().getSubject();
+
+        userService.deleteUserAndTransactions(keycloakSub);
+        return ResponseEntity.noContent().build();
+    }
+
 }
