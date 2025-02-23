@@ -1,0 +1,4 @@
+com\mybudget\keycloak_event_listener\MyCustomEventListenerProvider$UserInitRequest.class
+com\mybudget\keycloak_event_listener\MyCustomEventListenerProviderFactory.class
+com\mybudget\keycloak_event_listener\MyCustomEventListenerProvider.class
+com\mybudget\keycloak_event_listener\MyCustomEventListenerProvider$UserDeleteRequest.class
