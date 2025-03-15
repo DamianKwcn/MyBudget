@@ -1,21 +1,16 @@
 package com.mybudget.transactions.controller;
 
 import com.mybudget.transactions.constants.TransactionConstants;
-import com.mybudget.transactions.dto.ExpenseDto;
-import com.mybudget.transactions.dto.IncomeDto;
+import com.mybudget.transactions.dto.CreateTransactionDto;
 import com.mybudget.transactions.dto.ResponseDto;
 import com.mybudget.transactions.dto.TransactionDto;
 import com.mybudget.transactions.entity.Transaction;
 import com.mybudget.transactions.entity.enums.TransactionType;
-import com.mybudget.transactions.mapper.ExpenseMapper;
-import com.mybudget.transactions.mapper.IncomeMapper;
 import com.mybudget.transactions.mapper.TransactionMapper;
 import com.mybudget.transactions.service.TransactionService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -35,64 +30,20 @@ import java.util.Optional;
 public class TransactionController {
     private final TransactionService transactionService;
 
-    @RateLimiter(name = "createExpense")
-    @PostMapping("/expenses")
-    public ResponseEntity<ResponseDto> createExpense(JwtAuthenticationToken jwtAuthToken,
-                                                    @Valid @RequestBody ExpenseDto expenseDto) {
+    @RateLimiter(name = "createTransaction")
+    @PostMapping("/transactions")
+    public ResponseEntity<ResponseDto> createTransaction(JwtAuthenticationToken jwtAuthToken,
+                                                         @Valid @RequestBody CreateTransactionDto createTransactionDto) {
         String keycloakSub = jwtAuthToken.getToken().getSubject();
-        transactionService.createExpense(keycloakSub,
-                                         expenseDto.getAmount(),
-                                         expenseDto.getTransactionType(),
-                                         expenseDto.getExpenseCategory(),
-                                         expenseDto.getDescription());
+        transactionService.createTransaction(
+                keycloakSub,
+                createTransactionDto.getAmount(),
+                createTransactionDto.getCategoryId(),
+                createTransactionDto.getDescription()
+        );
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(new ResponseDto(TransactionConstants.STATUS_201,TransactionConstants.MESSAGE_201));
-    }
-
-    @RateLimiter(name = "createIncome")
-    @PostMapping("/incomes")
-    public ResponseEntity<ResponseDto> createIncome(JwtAuthenticationToken jwtAuthToken,
-                                                    @Valid @RequestBody IncomeDto incomeDto) {
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-        transactionService.createIncome(keycloakSub,
-                                        incomeDto.getAmount(),
-                                        incomeDto.getTransactionType(),
-                                        incomeDto.getIncomeCategory(),
-                                        incomeDto.getDescription());
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(new ResponseDto(TransactionConstants.STATUS_201,TransactionConstants.MESSAGE_201));
-    }
-
-    @RateLimiter(name = "getExpenses")
-    @GetMapping("/expenses")
-    public ResponseEntity<List<ExpenseDto>> getExpenses(JwtAuthenticationToken jwtAuthToken) {
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-        List<Transaction> transactions = transactionService.findByTransactionType(keycloakSub, TransactionType.EXPENSE);
-
-        List<ExpenseDto> expenses = transactions.stream()
-                .map(transaction -> ExpenseMapper.mapToExpenseDto(transaction, new ExpenseDto()))
-                .toList();
-
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(expenses);
-    }
-
-    @RateLimiter(name = "getIncomes")
-    @GetMapping("/incomes")
-    public ResponseEntity<List<IncomeDto>> getIncomes(JwtAuthenticationToken jwtAuthToken) {
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-        List<Transaction> transactions = transactionService.findByTransactionType(keycloakSub, TransactionType.INCOME);
-
-        List<IncomeDto> incomes = transactions.stream()
-                .map(transaction -> IncomeMapper.mapToIncomeDto(transaction, new IncomeDto()))
-                .toList();
-
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(incomes);
+                .body(new ResponseDto(TransactionConstants.STATUS_201, TransactionConstants.MESSAGE_201));
     }
 
     @RateLimiter(name = "getTransactions")
@@ -100,11 +51,9 @@ public class TransactionController {
     public ResponseEntity<List<TransactionDto>> getTransactions(JwtAuthenticationToken jwtAuthToken) {
         String keycloakSub = jwtAuthToken.getToken().getSubject();
         List<Transaction> transactions = transactionService.findTransactions(keycloakSub);
-
         List<TransactionDto> transactionsDto = transactions.stream()
                 .map(transaction -> TransactionMapper.mapToTransactionDto(transaction, new TransactionDto()))
                 .toList();
-
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(transactionsDto);
@@ -117,7 +66,6 @@ public class TransactionController {
         String keycloakSub = jwtAuthToken.getToken().getSubject();
         Optional<Transaction> transaction = transactionService.findTransaction(keycloakSub, id);
         TransactionDto transactionDto = TransactionMapper.mapToTransactionDto(transaction.orElseThrow(), new TransactionDto());
-
         return ResponseEntity.ok(transactionDto);
     }
 
@@ -128,6 +76,28 @@ public class TransactionController {
         transactionService.deleteTransaction(keycloakSub, id);
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(new ResponseDto(TransactionConstants.STATUS_200,TransactionConstants.MESSAGE_200));
+                .body(new ResponseDto(TransactionConstants.STATUS_200, TransactionConstants.MESSAGE_200));
+    }
+
+    @RateLimiter(name = "getExpenses")
+    @GetMapping("/expenses")
+    public ResponseEntity<List<TransactionDto>> getExpenses(JwtAuthenticationToken jwtAuthToken) {
+        String keycloakSub = jwtAuthToken.getToken().getSubject();
+        List<Transaction> expenses = transactionService.findByTransactionType(keycloakSub, TransactionType.EXPENSE);
+        List<TransactionDto> dtos = expenses.stream()
+                .map(transaction -> TransactionMapper.mapToTransactionDto(transaction, new TransactionDto()))
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
+    @RateLimiter(name = "getIncomes")
+    @GetMapping("/incomes")
+    public ResponseEntity<List<TransactionDto>> getIncomes(JwtAuthenticationToken jwtAuthToken) {
+        String keycloakSub = jwtAuthToken.getToken().getSubject();
+        List<Transaction> incomes = transactionService.findByTransactionType(keycloakSub, TransactionType.INCOME);
+        List<TransactionDto> dtos = incomes.stream()
+                .map(transaction -> TransactionMapper.mapToTransactionDto(transaction, new TransactionDto()))
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 }
