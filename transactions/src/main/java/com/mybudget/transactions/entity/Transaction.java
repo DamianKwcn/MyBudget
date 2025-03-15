@@ -1,17 +1,18 @@
 package com.mybudget.transactions.entity;
 
-import com.mybudget.transactions.entity.enums.ExpenseCategory;
-import com.mybudget.transactions.entity.enums.IncomeCategory;
 import com.mybudget.transactions.entity.enums.TransactionType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "transactions")
-@Getter @Setter @ToString @AllArgsConstructor @NoArgsConstructor
-public class Transaction extends BaseEntity {
+@Getter @Setter @ToString @AllArgsConstructor @NoArgsConstructor @EntityListeners(AuditingEntityListener.class)
+public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,13 +31,14 @@ public class Transaction extends BaseEntity {
     @Column(nullable = false)
     private TransactionType transactionType;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "expense_category")
-    private ExpenseCategory expenseCategory;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "income_category")
-    private IncomeCategory incomeCategory;
+    @ManyToOne
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
 
     private String description;
+
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
 }

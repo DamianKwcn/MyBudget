@@ -1,11 +1,11 @@
 package com.mybudget.transactions.service.implementation;
 
+import com.mybudget.transactions.entity.Category;
 import com.mybudget.transactions.entity.Transaction;
-import com.mybudget.transactions.entity.enums.ExpenseCategory;
-import com.mybudget.transactions.entity.enums.IncomeCategory;
 import com.mybudget.transactions.entity.enums.TransactionType;
 import com.mybudget.transactions.entity.feign.BalanceUpdateRequest;
 import com.mybudget.transactions.exception.ResourceNotFoundException;
+import com.mybudget.transactions.repository.CategoryRepository;
 import com.mybudget.transactions.repository.TransactionRepository;
 import com.mybudget.transactions.service.TransactionService;
 import com.mybudget.transactions.service.client.AccountsFeignClient;
@@ -25,6 +25,8 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class TransactionServiceImpl implements TransactionService {
+
+    private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
     private final AccountsFeignClient accountsFeignClient;
 
@@ -43,9 +45,15 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Transactional
     @Override
-    public Transaction createExpense(String keycloakSub, BigDecimal amount, TransactionType transactionType,
-                                     ExpenseCategory expenseCategory, String description) {
-        logger.info("Creating expense for user: {}, amount: {}", keycloakSub, amount);
+    public Transaction createTransaction(String keycloakSub, BigDecimal amount, Long categoryId, String description) {
+        logger.info("Creating transaction for user: {}, amount: {}", keycloakSub, amount);
+
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category", "id", categoryId.toString()));
+
+        if (category.getKeycloakSub() != null && !category.getKeycloakSub().equals(keycloakSub)) {
+            throw new IllegalArgumentException("Category " + category.getCategoryName() +  " is not available!!!");
+        }
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String authHeader = "Bearer " + ((JwtAuthenticationToken) authentication).getToken().getTokenValue();
@@ -54,42 +62,23 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction transaction = new Transaction();
         transaction.setKeycloakSub(keycloakSub);
         transaction.setAmount(amount);
-        transaction.setTransactionType(transactionType);
-        transaction.setExpenseCategory(expenseCategory);
+        transaction.setTransactionType(category.getTransactionType());
+        transaction.setCategory(category);
         transaction.setDescription(description);
-        transaction.setBalanceAfter(currentBalance.subtract(amount));
+
+        if (category.getTransactionType() == TransactionType.EXPENSE) {
+            transaction.setBalanceAfter(currentBalance.subtract(amount));
+        } else {
+            transaction.setBalanceAfter(currentBalance.add(amount));
+        }
+
         transactionRepository.save(transaction);
+        logger.info("Transaction created: {}, new balance: {}", transaction, transaction.getBalanceAfter());
 
-        logger.info("Expense created: {}, balance after: {}", transaction, transaction.getBalanceAfter());
-
-        accountsFeignClient.updateBalance(authHeader, new BalanceUpdateRequest(keycloakSub, amount, transactionType));
+        accountsFeignClient.updateBalance(authHeader, new BalanceUpdateRequest(keycloakSub, amount, category.getTransactionType()));
         return transaction;
     }
 
-    @Transactional
-    @Override
-    public Transaction createIncome(String keycloakSub, BigDecimal amount, TransactionType transactionType,
-                                    IncomeCategory incomeCategory, String description) {
-        logger.info("Creating income for user: {}, amount: {}", keycloakSub, amount);
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String authHeader = "Bearer " + ((JwtAuthenticationToken) authentication).getToken().getTokenValue();
-        BigDecimal currentBalance = accountsFeignClient.getUserBalance(authHeader, keycloakSub);
-
-        Transaction transaction = new Transaction();
-        transaction.setKeycloakSub(keycloakSub);
-        transaction.setAmount(amount);
-        transaction.setTransactionType(transactionType);
-        transaction.setIncomeCategory(incomeCategory);
-        transaction.setDescription(description);
-        transaction.setBalanceAfter(currentBalance.add(amount));
-        transactionRepository.save(transaction);
-
-        logger.debug("Income created: {}, balance after: {}", transaction, transaction.getBalanceAfter());
-
-        accountsFeignClient.updateBalance(authHeader, new BalanceUpdateRequest(keycloakSub, amount, transactionType));
-        return transaction;
-    }
 
     @Override
     public List<Transaction> findByTransactionType(String keycloakSub, TransactionType transactionType) {

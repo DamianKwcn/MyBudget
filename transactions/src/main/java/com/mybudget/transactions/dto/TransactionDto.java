@@ -13,19 +13,11 @@ import java.math.BigDecimal;
 @Data
 public class TransactionDto {
 
-    @NotNull(message = "Amount cannot be null")
-    @DecimalMin(value = "0.0", inclusive = true, message = "Amount must be non-negative")
-    @Digits(integer = 10, fraction = 2, message = "Amount must be a numeric value with up to 2 decimal places")
     private BigDecimal amount;
-
     private BigDecimal balanceAfter;
-
-    @NotNull(message = "Type cannot be null")
-    private TransactionType transactionType = TransactionType.EXPENSE;
-
-    @Size(max = 255, message = "Description can have up to 255 characters")
+    private TransactionType transactionType;
     private String description;
-
     private LocalDateTime createdAt;
+    private String categoryName;
 
 }
