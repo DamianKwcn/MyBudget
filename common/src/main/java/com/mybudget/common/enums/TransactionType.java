@@ -1,4 +1,4 @@
-package com.mybudget.accounts.entity.feign;
+package com.mybudget.common.enums;
 
 public enum TransactionType {
     INCOME,

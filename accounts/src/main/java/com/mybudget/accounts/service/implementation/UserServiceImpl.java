@@ -5,7 +5,6 @@ import com.mybudget.accounts.exception.BalanceAlreadySetException;
 import com.mybudget.accounts.exception.ResourceNotFoundException;
 import com.mybudget.accounts.repository.UserRepository;
 import com.mybudget.accounts.service.UserService;
-import com.mybudget.accounts.service.client.TransactionFeignClient;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -20,7 +19,6 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
-    private final TransactionFeignClient transactionFeignClient;
 
     @Override
     public User findUserByKeycloakSub(String keycloakSub) {
@@ -74,37 +72,42 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByKeycloakSub(keycloakSub)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "keycloakSub", keycloakSub));
         userRepository.delete(user);
-        transactionFeignClient.deleteAllTransactions(keycloakSub);
 
     }
 
     @Transactional
     @Override
-    public void updateBalance(String keycloakSub, BigDecimal amount, boolean isIncome) {
-        logger.info("Updating balance for user with keycloakSub: {}, amount: {}, isIncome: {}", keycloakSub, amount, isIncome);
+    public BigDecimal updateBalance(String keycloakSub, BigDecimal amount, String transactionType) {
+        logger.info("Updating balance for user with keycloakSub: {}, amount: {}, transactionType: {}", keycloakSub, amount, transactionType);
 
         User user = findUserByKeycloakSub(keycloakSub);
 
-        if (user.getBalance() == null) {
-            logger.warn("User with keycloakSub: {} has null balance. Initializing to 0.", keycloakSub);
-            user.setBalance(BigDecimal.ZERO);
-        }
-
         BigDecimal oldBalance = user.getBalance();
-        BigDecimal newBalance = isIncome ? oldBalance.add(amount) : oldBalance.subtract(amount);
+        BigDecimal newBalance = oldBalance;
 
-        if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
-            logger.warn("Insufficient funds for user with keycloakSub: {}. Current balance: {}, attempted withdrawal: {}", keycloakSub, oldBalance, amount);
-            throw new IllegalArgumentException("Insufficient funds");
+        switch (transactionType.toUpperCase()) {
+            case "INCOME":
+                newBalance = oldBalance.add(amount);
+                break;
+            case "EXPENSE":
+                newBalance = oldBalance.subtract(amount);
+                if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+                    logger.warn("Insufficient funds for user with keycloakSub: {}. Current balance: {}, attempted withdrawal: {}", keycloakSub, oldBalance, amount);
+                    throw new IllegalArgumentException("Insufficient funds");
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown transaction type: " + transactionType);
         }
 
         user.setBalance(newBalance);
         userRepository.save(user);
         logger.info("Balance updated for user with keycloakSub: {}. Old balance: {}, New balance: {}", keycloakSub, oldBalance, newBalance);
+
+        return newBalance;
     }
 
     @Transactional
-    @Override
     public void updateBalanceAfterDelete(String keycloakSub, BigDecimal amount, boolean isIncome) {
         logger.info("Updating balance for user with keycloakSub: {}, amount: {}, isIncome: {}", keycloakSub, amount, isIncome);
 

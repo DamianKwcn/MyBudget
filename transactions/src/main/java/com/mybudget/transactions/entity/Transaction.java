@@ -1,5 +1,6 @@
 package com.mybudget.transactions.entity;
 
+import com.mybudget.common.enums.TransactionStatus;
 import com.mybudget.transactions.entity.enums.TransactionType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -24,7 +25,7 @@ public class Transaction {
     @Column(nullable = false)
     private BigDecimal amount;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private BigDecimal balanceAfter;
 
     @Enumerated(EnumType.STRING)
@@ -40,5 +41,8 @@ public class Transaction {
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    private TransactionStatus status;
 
 }

@@ -1,6 +1,5 @@
-package com.mybudget.transactions.entity.feign;
+package com.mybudget.common.event;
 
-import com.mybudget.transactions.entity.enums.TransactionType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,8 +9,10 @@ import java.math.BigDecimal;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class BalanceUpdateRequest {
+public class TransactionSagaStartEvent {
+    private Long transactionId;
     private String keycloakSub;
     private BigDecimal amount;
-    private TransactionType transactionType;
+    private String transactionType;
 }
+
