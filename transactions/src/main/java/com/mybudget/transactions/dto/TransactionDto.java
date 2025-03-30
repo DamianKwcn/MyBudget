@@ -12,12 +12,10 @@ import java.math.BigDecimal;
 
 @Data
 public class TransactionDto {
-
     private BigDecimal amount;
     private BigDecimal balanceAfter;
     private TransactionType transactionType;
     private String description;
     private LocalDateTime createdAt;
     private String categoryName;
-
 }

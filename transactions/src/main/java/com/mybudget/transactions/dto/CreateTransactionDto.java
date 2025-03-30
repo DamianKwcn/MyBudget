@@ -1,5 +1,7 @@
 package com.mybudget.transactions.dto;
 
+import com.mybudget.common.enums.TransactionStatus;
+import com.mybudget.transactions.entity.enums.TransactionType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
@@ -21,4 +23,8 @@ public class CreateTransactionDto {
     @NotNull(message = "Description cannot be null")
     @Size(max = 255, message = "Description can have up to 255 characters")
     private String description;
+
+    private TransactionStatus transactionStatus;
+
+    private TransactionType transactionType;
 }

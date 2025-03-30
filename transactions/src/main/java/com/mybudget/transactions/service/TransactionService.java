@@ -10,7 +10,7 @@ import java.util.Optional;
 public interface TransactionService {
     Optional<Transaction> findTransaction(String keycloakSub, Long id);
 
-    Transaction createTransaction(String keycloakSub, BigDecimal amount, Long categoryId, String description);
+    Transaction createTransaction(String keycloakSub, BigDecimal amount, Long categoryId, String description, String transactionType);
 
     List<Transaction> findByTransactionType(String keycloakSub, TransactionType transactionType);
 
@@ -19,4 +19,5 @@ public interface TransactionService {
     boolean deleteTransaction(String keycloakSub, Long id);
 
     void deleteAllByKeycloakSub(String keycloakSub);
+
 }

@@ -19,7 +19,7 @@ CREATE TABLE transactions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     keycloak_sub VARCHAR(255) NOT NULL,
     amount DECIMAL(19,2) NOT NULL,
-    balance_after DECIMAL(19,2) NOT NULL,
+    balance_after DECIMAL(19,2),
     transaction_type VARCHAR(50) NOT NULL,
     category_id BIGINT NOT NULL,
     description VARCHAR(255),

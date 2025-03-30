@@ -21,7 +21,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public void createUserCategory(String keycloakSub, String categoryName, TransactionType transactionType) {
-        logger.info("Creating category for user: {}, category: {}", keycloakSub, categoryName);
+        logger.info("Creating category for sub: {}, category: {}", keycloakSub, categoryName);
 
         Optional<Category> existing = categoryRepository.findByCategoryName(categoryName);
         if (existing.isPresent()) {
@@ -36,6 +36,6 @@ public class CategoryServiceImpl implements CategoryService {
         category.setBuiltIn(false);
         categoryRepository.save(category);
 
-        logger.info("Successfully created category for user: {}, category: {}", keycloakSub, categoryName);
+        logger.info("Successfully created category for sub: {}, category: {}", keycloakSub, categoryName);
     }
 }
