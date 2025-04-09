@@ -14,7 +14,5 @@ public interface UserService {
 
     void deleteUserAndTransactions(String keycloakSub);
 
-    void updateBalance(String keycloakSub, BigDecimal amount, boolean isIncome);
-
-    void updateBalanceAfterDelete(String keycloakSub, BigDecimal amount, boolean isIncome);
+    BigDecimal updateBalance(String keycloakSub, BigDecimal amount, String transactionType);
 }

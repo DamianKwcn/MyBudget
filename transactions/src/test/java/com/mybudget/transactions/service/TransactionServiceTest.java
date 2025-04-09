@@ -1,20 +1,20 @@
 package com.mybudget.transactions.service;
 
+import com.mybudget.common.enums.TransactionStatus;
+import com.mybudget.common.event.TransactionSagaStartEvent;
 import com.mybudget.transactions.entity.Category;
 import com.mybudget.transactions.entity.Transaction;
 import com.mybudget.transactions.entity.enums.TransactionType;
-import com.mybudget.transactions.entity.feign.BalanceUpdateRequest;
 import com.mybudget.transactions.exception.ResourceNotFoundException;
 import com.mybudget.transactions.repository.CategoryRepository;
 import com.mybudget.transactions.repository.TransactionRepository;
-import com.mybudget.transactions.service.client.AccountsFeignClient;
 import com.mybudget.transactions.service.implementation.TransactionServiceImpl;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.context.SecurityContext;
+import org.mockito.MockitoAnnotations;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -24,216 +24,164 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class TransactionServiceTest {
-
-    @Mock
-    private TransactionRepository transactionRepository;
 
     @Mock
     private CategoryRepository categoryRepository;
 
     @Mock
-    private AccountsFeignClient accountsFeignClient;
+    private TransactionRepository transactionRepository;
 
     @Mock
-    private SecurityContext securityContext;
-
-    @Mock
-    private JwtAuthenticationToken jwtAuthenticationToken;
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     @InjectMocks
     private TransactionServiceImpl transactionService;
 
-    private final String keycloakSub = "user-123";
+    private String sub;
 
-    @Test
-    void shouldFindTransactionById() {
-        // GIVEN
-        Transaction transaction = new Transaction();
-        transaction.setKeycloakSub(keycloakSub);
-        transaction.setId(1L);
-        when(transactionRepository.findTransactionByKeycloakSubAndId(keycloakSub, 1L))
-                .thenReturn(Optional.of(transaction));
-
-        // WHEN
-        Optional<Transaction> foundTransaction = transactionService.findTransaction(keycloakSub, 1L);
-
-        // THEN
-        assertTrue(foundTransaction.isPresent());
-        assertEquals(transaction, foundTransaction.get());
+    @BeforeEach
+    void setUp() {
+        sub = "user123";
+        MockitoAnnotations.openMocks(this);
+        SecurityContextHolder.clearContext();
+        Jwt jwt = Jwt.withTokenValue("fake-token").header("alg", "none").claim("sub", "test-sub").build();
+        JwtAuthenticationToken authentication = new JwtAuthenticationToken(jwt);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     @Test
-    void shouldThrowExceptionWhenTransactionNotFound() {
-        // GIVEN
-        when(transactionRepository.findTransactionByKeycloakSubAndId(keycloakSub, 1L))
-                .thenReturn(Optional.empty());
-
-        // WHEN & THEN
-        assertThrows(ResourceNotFoundException.class, () -> transactionService.findTransaction(keycloakSub, 1L));
-    }
-
-    @Test
-    void shouldCreateExpenseTransaction() {
-        // GIVEN
-        SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(jwtAuthenticationToken);
-        Jwt jwt = mock(Jwt.class);
-        when(jwt.getTokenValue()).thenReturn("mocked-token");
-        when(jwtAuthenticationToken.getToken()).thenReturn(jwt);
-
+    void shouldCreateTransactionSuccessfully() {
+        // given
         BigDecimal amount = BigDecimal.valueOf(100);
-        Category expenseCategory = new Category();
-        expenseCategory.setId(3L);
-        expenseCategory.setCategoryName("Car");
-        expenseCategory.setTransactionType(TransactionType.EXPENSE);
-        when(categoryRepository.findById(eq(3L))).thenReturn(Optional.of(expenseCategory));
-        when(accountsFeignClient.getUserBalance(anyString(), eq(keycloakSub)))
-                .thenReturn(BigDecimal.valueOf(1000));
+        Long categoryId = 1L;
+        String description = "Test Transaction";
+        String type = "income";
+        Category category = new Category(categoryId, "Food", TransactionType.INCOME, sub, false);
 
-        Transaction transaction = new Transaction();
-        transaction.setKeycloakSub(keycloakSub);
-        transaction.setAmount(amount);
-        transaction.setTransactionType(TransactionType.EXPENSE);
-        transaction.setCategory(expenseCategory);
-        transaction.setDescription("Home expense");
-        transaction.setBalanceAfter(BigDecimal.valueOf(900));
-        when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
+        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
+        when(transactionRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
 
-        // WHEN
-        Transaction createdTransaction = transactionService.createTransaction(keycloakSub, amount, 3L, "Home expense");
+        // when
+        Transaction result = transactionService.createTransaction(sub, amount, categoryId, description, type);
 
-        // THEN
-        assertNotNull(createdTransaction);
-        assertEquals(amount, createdTransaction.getAmount());
-        assertEquals(TransactionType.EXPENSE, createdTransaction.getTransactionType());
-        assertEquals("Car", createdTransaction.getCategory().getCategoryName());
-        assertEquals(BigDecimal.valueOf(900), createdTransaction.getBalanceAfter());
-        verify(accountsFeignClient).updateBalance(eq("Bearer mocked-token"), any(BalanceUpdateRequest.class));
+        // then
+        assertEquals(sub, result.getKeycloakSub());
+        assertEquals(TransactionType.INCOME, result.getTransactionType());
+        assertEquals(TransactionStatus.PENDING, result.getStatus());
+        verify(kafkaTemplate).send(eq("orchestrator-commands"), any(TransactionSagaStartEvent.class));
     }
 
     @Test
-    void shouldCreateIncomeTransaction() {
-        // GIVEN
-        SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(jwtAuthenticationToken);
-        Jwt jwt = mock(Jwt.class);
-        when(jwt.getTokenValue()).thenReturn("mocked-token");
-        when(jwtAuthenticationToken.getToken()).thenReturn(jwt);
+    void shouldThrowExceptionWhenCategoryBelongsToDifferentUser() {
+        // given
+        String otherSub = "otherUser";
+        Long categoryId = 1L;
+        Category category = new Category(categoryId, "Transport", TransactionType.EXPENSE, otherSub, false);
 
-        BigDecimal amount = BigDecimal.valueOf(200);
-        Category incomeCategory = new Category();
-        incomeCategory.setId(1L);
-        incomeCategory.setCategoryName("Salary");
-        incomeCategory.setTransactionType(TransactionType.INCOME);
-        when(categoryRepository.findById(eq(1L))).thenReturn(Optional.of(incomeCategory));
-        when(accountsFeignClient.getUserBalance(anyString(), eq(keycloakSub)))
-                .thenReturn(BigDecimal.valueOf(1000));
+        when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
 
+        // when & then
+        assertThrows(IllegalArgumentException.class,
+                () -> transactionService.createTransaction(sub, BigDecimal.TEN, categoryId, "desc", "EXPENSE")
+        );
+
+        verify(transactionRepository, never()).save(any());
+        verify(kafkaTemplate, never()).send(any(), any());
+    }
+
+    @Test
+    void shouldFindTransactionByIdAndSub() {
+        // given
+        Long id = 1L;
         Transaction transaction = new Transaction();
-        transaction.setKeycloakSub(keycloakSub);
-        transaction.setAmount(amount);
-        transaction.setTransactionType(TransactionType.INCOME);
-        transaction.setCategory(incomeCategory);
-        transaction.setDescription("Salary");
-        transaction.setBalanceAfter(BigDecimal.valueOf(1200));
-        when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
+        transaction.setId(id);
+        transaction.setKeycloakSub(sub);
 
-        // WHEN
-        Transaction createdTransaction = transactionService.createTransaction(keycloakSub, amount, 1L, "Salary");
+        when(transactionRepository.findTransactionByKeycloakSubAndId(sub, id)).thenReturn(Optional.of(transaction));
 
-        // THEN
-        assertNotNull(createdTransaction);
-        assertEquals(amount, createdTransaction.getAmount());
-        assertEquals(TransactionType.INCOME, createdTransaction.getTransactionType());
-        assertEquals("Salary", createdTransaction.getCategory().getCategoryName());
-        assertEquals(BigDecimal.valueOf(1200), createdTransaction.getBalanceAfter());
-        verify(accountsFeignClient).updateBalance(eq("Bearer mocked-token"), any(BalanceUpdateRequest.class));
+        // when
+        Optional<Transaction> result = transactionService.findTransaction(sub, id);
+
+        // then
+        assertTrue(result.isPresent());
+        assertEquals(id, result.get().getId());
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundWhenTransactionNotFound() {
+        // given
+        Long id = 999L;
+        when(transactionRepository.findTransactionByKeycloakSubAndId(sub, id)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThrows(ResourceNotFoundException.class, () -> transactionService.findTransaction(sub, id));
     }
 
     @Test
     void shouldFindTransactionsByType() {
-        // GIVEN
-        Transaction transaction = new Transaction();
-        transaction.setKeycloakSub(keycloakSub);
-        transaction.setTransactionType(TransactionType.INCOME);
-        when(transactionRepository.findByKeycloakSubAndTransactionType(keycloakSub, TransactionType.INCOME))
-                .thenReturn(List.of(transaction));
+        // given
+        TransactionType type = TransactionType.INCOME;
+        List<Transaction> expected = List.of(new Transaction(), new Transaction());
+        when(transactionRepository.findByKeycloakSubAndTransactionType(sub, type)).thenReturn(expected);
 
-        // WHEN
-        List<Transaction> transactions = transactionService.findByTransactionType(keycloakSub, TransactionType.INCOME);
+        // when
+        List<Transaction> result = transactionService.findByTransactionType(sub, type);
 
-        // THEN
-        assertFalse(transactions.isEmpty());
-        assertEquals(1, transactions.size());
+        // then
+        assertEquals(2, result.size());
     }
 
     @Test
-    void shouldFindAllTransactionsByUser() {
-        // GIVEN
-        Transaction transaction = new Transaction();
-        transaction.setKeycloakSub(keycloakSub);
-        when(transactionRepository.findTransactionsByKeycloakSub(keycloakSub))
-                .thenReturn(List.of(transaction));
+    void shouldDeleteAllTransactionsBySub() {
+        // when
+        transactionService.deleteAllByKeycloakSub(sub);
 
-        // WHEN
-        List<Transaction> transactions = transactionService.findTransactions(keycloakSub);
-
-        // THEN
-        assertFalse(transactions.isEmpty());
-        assertEquals(1, transactions.size());
+        // then
+        verify(transactionRepository).deleteByKeycloakSub(sub);
     }
 
     @Test
-    void shouldDeleteTransaction() {
-        // GIVEN
-        SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(jwtAuthenticationToken);
-        Jwt jwt = mock(Jwt.class);
-        when(jwt.getTokenValue()).thenReturn("mocked-token");
-        when(jwtAuthenticationToken.getToken()).thenReturn(jwt);
+    void shouldFindAllTransactionsBySub() {
+        // given
+        List<Transaction> list = List.of(new Transaction(), new Transaction());
+        when(transactionRepository.findTransactionsByKeycloakSub(sub)).thenReturn(list);
+
+        // when
+        List<Transaction> result = transactionService.findTransactions(sub);
+
+        // then
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void shouldDeleteTransactionByIdAndSub() {
+        // given
+        Long id = 1L;
         Transaction transaction = new Transaction();
-        transaction.setKeycloakSub(keycloakSub);
-        transaction.setId(1L);
-        transaction.setAmount(BigDecimal.valueOf(150));
-        transaction.setTransactionType(TransactionType.EXPENSE);
-        when(transactionRepository.findTransactionByKeycloakSubAndId(keycloakSub, 1L))
-                .thenReturn(Optional.of(transaction));
+        transaction.setId(id);
+        transaction.setKeycloakSub(sub);
 
-        // WHEN
-        boolean deleted = transactionService.deleteTransaction(keycloakSub, 1L);
+        when(transactionRepository.findTransactionByKeycloakSubAndId(sub, id)).thenReturn(Optional.of(transaction));
 
-        // THEN
-        assertTrue(deleted, "Should return true after deletion.");
-        verify(transactionRepository).findTransactionByKeycloakSubAndId(keycloakSub, 1L);
-        verify(accountsFeignClient).updateBalanceAfterDelete(eq("Bearer mocked-token"),
-                argThat(req ->
-                        req.getKeycloakSub().equals(keycloakSub)
-                                && req.getAmount().equals(BigDecimal.valueOf(150))
-                                && req.getTransactionType().equals(TransactionType.EXPENSE)
-                ));
+        // when
+        boolean deleted = transactionService.deleteTransaction(sub, id);
+
+        // then
+        assertTrue(deleted);
         verify(transactionRepository).delete(transaction);
     }
 
     @Test
-    void shouldThrowExceptionWhenDeletingNonExistingTransaction() {
-        // GIVEN
-        SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(jwtAuthenticationToken);
-        Jwt jwt = mock(Jwt.class);
-        when(jwt.getTokenValue()).thenReturn("mocked-token");
-        when(jwtAuthenticationToken.getToken()).thenReturn(jwt);
-        when(transactionRepository.findTransactionByKeycloakSubAndId(keycloakSub, 1L))
-                .thenReturn(Optional.empty());
+    void shouldThrowWhenDeletingNonExistentTransaction() {
+        // given
+        Long id = 42L;
+        when(transactionRepository.findTransactionByKeycloakSubAndId(sub, id)).thenReturn(Optional.empty());
 
-        // WHEN & THEN
-        assertThrows(ResourceNotFoundException.class,
-                () -> transactionService.deleteTransaction(keycloakSub, 1L));
-        verify(transactionRepository, never()).delete(any(Transaction.class));
-        verify(accountsFeignClient, never()).updateBalanceAfterDelete(anyString(), any(BalanceUpdateRequest.class));
+        // when & then
+        assertThrows(ResourceNotFoundException.class, () -> transactionService.deleteTransaction(sub, id));
     }
 }

@@ -13,6 +13,8 @@
         <option value="$PROJECT_DIR$/keycloak-event-listener/pom.xml" />
         <option value="$PROJECT_DIR$/expenses/pom.xml" />
         <option value="$PROJECT_DIR$/transactions/pom.xml" />
+        <option value="$PROJECT_DIR$/common/pom.xml" />
+        <option value="$PROJECT_DIR$/orchestrator/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">

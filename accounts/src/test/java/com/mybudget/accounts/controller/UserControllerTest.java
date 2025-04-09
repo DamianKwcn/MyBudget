@@ -18,6 +18,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -30,6 +31,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@TestPropertySource(properties = {
+        "springdoc.api-docs.enabled=false",
+        "springdoc.swagger-ui.enabled=false"
+})
 @SpringBootTest
 @AutoConfigureMockMvc
 class UserControllerTest {
@@ -145,53 +150,6 @@ class UserControllerTest {
             resultActions
                     .andExpect(status().isNotAcceptable())
                     .andExpect(content().string(containsString("Balance already set for user")));
-        }
-    }
-
-    @Nested
-    @DisplayName("DELETE /api/users - deleteUser()")
-    class DeleteUserTests {
-
-        @Test
-        void shouldDeleteUser() throws Exception {
-            // GIVEN
-            String subject = "test-subject";
-            doNothing().when(userService).deleteUserAndTransactions(subject);
-
-            // WHEN
-            var resultActions = mockMvc.perform(
-                    delete("/api/users")
-                            .with(SecurityMockMvcRequestPostProcessors.jwt()
-                                    .jwt(jwt -> jwt.claim("sub", subject)))
-            );
-
-            // THEN
-            resultActions
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.statusCode").value(UserConstants.STATUS_200))
-                    .andExpect(jsonPath("$.statusMsg").value(UserConstants.MESSAGE_200));
-            verify(userService, times(1)).deleteUserAndTransactions(subject);
-        }
-
-        @Test
-        void shouldThrowResourceNotFoundException() throws Exception {
-            // GIVEN
-            String subject = "unknown-subject";
-            doThrow(new ResourceNotFoundException("User", "keycloakSub", subject))
-                    .when(userService)
-                    .deleteUserAndTransactions(subject);
-
-            // WHEN
-            var resultActions = mockMvc.perform(delete("/api/users")
-                    .with(SecurityMockMvcRequestPostProcessors.jwt()
-                            .jwt(jwt -> jwt.claim("sub", subject))));
-
-            // THEN
-            resultActions
-                    .andExpect(status().isNotFound())
-                    .andExpect(content().string(containsString(
-                            "User not found with the given input data keycloakSub : 'unknown-subject'"
-                    )));
         }
     }
 

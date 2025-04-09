@@ -39,8 +39,10 @@ public class TransactionController {
                 keycloakSub,
                 createTransactionDto.getAmount(),
                 createTransactionDto.getCategoryId(),
-                createTransactionDto.getDescription()
+                createTransactionDto.getDescription(),
+                String.valueOf(createTransactionDto.getTransactionType())
         );
+
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(new ResponseDto(TransactionConstants.STATUS_201, TransactionConstants.MESSAGE_201));
