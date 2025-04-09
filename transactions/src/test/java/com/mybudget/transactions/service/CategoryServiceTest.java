@@ -44,36 +44,32 @@ class CategoryServiceTest {
         category.setBuiltIn(false);
     }
 
-    @Nested
-    @DisplayName("createUserCategory()")
-    class CreateUserCategoryTests {
+    @Test
+    void shouldCreateNewCategory() {
+        // Given
+        when(categoryRepository.findByCategoryName(eq(categoryName)))
+                .thenReturn(Optional.empty());
 
-        @Test
-        @DisplayName("Should create new category when it does not exist")
-        void shouldCreateNewCategory() {
-            // GIVEN
-            when(categoryRepository.findByCategoryName(eq(categoryName))).thenReturn(Optional.empty());
+        // When
+        categoryService.createUserCategory(keycloakSub, categoryName, transactionType);
 
-            // WHEN
-            categoryService.createUserCategory(keycloakSub, categoryName, transactionType);
+        // Then
+        verify(categoryRepository, times(1)).findByCategoryName(eq(categoryName));
+        verify(categoryRepository, times(1)).save(any(Category.class));
+    }
 
-            // THEN
-            verify(categoryRepository, times(1)).findByCategoryName(eq(categoryName));
-            verify(categoryRepository, times(1)).save(any(Category.class));
-        }
+    @Test
+    void shouldThrowExceptionWhenCategoryExists() {
+        // Given
+        when(categoryRepository.findByCategoryName(eq(categoryName)))
+                .thenReturn(Optional.of(category));
 
-        @Test
-        @DisplayName("Should throw exception when category already exists")
-        void shouldThrowExceptionWhenCategoryExists() {
-            // GIVEN
-            when(categoryRepository.findByCategoryName(eq(categoryName))).thenReturn(Optional.of(category));
+        // When & Then
+        assertThrows(ResourceAlreadyExistsException.class,
+                () -> categoryService.createUserCategory(keycloakSub, categoryName, transactionType));
 
-            // WHEN & THEN
-            assertThrows(ResourceAlreadyExistsException.class,
-                    () -> categoryService.createUserCategory(keycloakSub, categoryName, transactionType));
-
-            verify(categoryRepository, times(1)).findByCategoryName(eq(categoryName));
-            verify(categoryRepository, never()).save(any(Category.class));
-        }
+        verify(categoryRepository, times(1)).findByCategoryName(eq(categoryName));
+        verify(categoryRepository, never()).save(any(Category.class));
     }
 }
+

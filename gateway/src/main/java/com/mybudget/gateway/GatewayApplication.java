@@ -36,24 +36,35 @@ public class GatewayApplication {
 		return routeLocatorBuilder.routes()
 				.route(p -> p
 						.path("/mybudget/accounts/**")
-						.filters(f -> f.rewritePath("/mybudget/accounts/(?<segment>.*)","/${segment}")
+						.filters(f -> f.rewritePath("/mybudget/accounts/(?<segment>.*)", "/${segment}")
 								.addResponseHeader("X-Response-Time", LocalDateTime.now().toString())
 								.requestRateLimiter(config -> config.setRateLimiter(redisRateLimiter())
-												.setKeyResolver(userKeyResolver()))
+										.setKeyResolver(userKeyResolver()))
 								.circuitBreaker(config -> config.setName("accountsCircuitBreaker")
 										.setFallbackUri("forward:/contactSupport")))
 						.uri("lb://ACCOUNTS"))
 				.route(p -> p
 						.path("/mybudget/transactions/**")
-						.filters(f -> f.rewritePath("/mybudget/transactions/(?<segment>.*)","/${segment}")
+						.filters(f -> f.rewritePath("/mybudget/transactions/(?<segment>.*)", "/${segment}")
 								.addResponseHeader("X-Response-Time", LocalDateTime.now().toString())
 								.requestRateLimiter(config -> config.setRateLimiter(redisRateLimiter())
 										.setKeyResolver(userKeyResolver()))
 								.circuitBreaker(config -> config.setName("transactionsCircuitBreaker")
 										.setFallbackUri("forward:/contactSupport")))
-						.uri("lb://TRANSACTIONS")).build();
-
+						.uri("lb://TRANSACTIONS"))
+				.route(p -> p
+						.path("/mybudget/api/orchestrator/**")
+						.filters(f -> f.rewritePath("/mybudget/api/orchestrator/(?<segment>.*)",
+										"/api/orchestrator/${segment}")
+								.addResponseHeader("X-Response-Time", LocalDateTime.now().toString())
+								.requestRateLimiter(config -> config.setRateLimiter(redisRateLimiter())
+										.setKeyResolver(userKeyResolver()))
+								.circuitBreaker(config -> config.setName("orchestratorCircuitBreaker")
+										.setFallbackUri("forward:/contactSupport")))
+						.uri("lb://ORCHESTRATOR"))
+				.build();
 	}
+
 
 	@Bean
 	public Customizer<ReactiveResilience4JCircuitBreakerFactory> defaultCustomizer() {

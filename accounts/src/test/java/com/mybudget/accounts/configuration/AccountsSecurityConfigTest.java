@@ -1,5 +1,6 @@
 package com.mybudget.accounts.configuration;
 
+import com.mybudget.accounts.entity.User;
 import com.mybudget.accounts.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 
@@ -44,27 +46,54 @@ class AccountsSecurityConfigTest {
 
     @Test
     void shouldAllowAccessToInitializeEndpointWithoutAuthentication() throws Exception {
-        mockMvc.perform(post("/api/user/initialize"))
-                .andExpect(status().isOk());
+        // Given
+        String requestBody = """
+            {
+                "keycloakSub": "test-sub",
+                "email": "test@example.com",
+                "givenName": "Test",
+                "familyName": "User",
+                "preferredUsername": "testuser"
+            }
+            """;
+
+        // When & Then
+        mockMvc.perform(post("/api/user/initialize")
+                        .contentType("application/json")
+                        .content(requestBody))
+                .andExpect(status().isCreated());
     }
 
     @Test
     void shouldDenyAccessToProtectedEndpointsWithoutAuthentication() throws Exception {
+        // When & Then
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void shouldAllowAuthenticatedUsersToAccessProtectedEndpoints() throws Exception {
-        when(jwtDecoder.decode("mock-token")).thenReturn(mockJwt());
+        // Given
+        Jwt jwt = mockJwt();
+        when(jwtDecoder.decode("mock-token")).thenReturn(jwt);
 
+        User mockUser = new User();
+        mockUser.setKeycloakSub("test-user");
+        mockUser.setEmail("test@example.com");
+        mockUser.setUsername("mockUser");
+        mockUser.setBalance(BigDecimal.valueOf(100.0));
+
+        when(userService.findUserByKeycloakSub("test-user")).thenReturn(mockUser);
+
+        // When & Then
         mockMvc.perform(get("/api/users")
-                        .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(mockJwt())))
+                        .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt)))
                 .andExpect(status().isOk());
     }
 
     @Test
     void shouldDenyAccessToProtectedEndpointsForUserWithoutRoles() throws Exception {
+        // Given
         Jwt noRoleJwt = Jwt.withTokenValue("mock-token")
                 .header("alg", "none")
                 .claim("sub", "test-user")
@@ -73,7 +102,9 @@ class AccountsSecurityConfigTest {
                 .build();
 
         when(jwtDecoder.decode("mock-token")).thenReturn(noRoleJwt);
+        when(userService.findUserByKeycloakSub("test-user")).thenReturn(null);
 
+        // When & Then
         mockMvc.perform(get("/api/users")
                         .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(noRoleJwt)))
                 .andExpect(status().isForbidden());
