@@ -19,7 +19,11 @@ public class TransactionMapper {
         transactionDto.setTransactionType(transaction.getTransactionType());
         transactionDto.setDescription(transaction.getDescription());
         transactionDto.setCreatedAt(transaction.getCreatedAt());
-        transactionDto.setCategoryName(transactionDto.getCategoryName());
+
+        if (transaction.getCategory() != null) {
+            transactionDto.setCategoryName(transaction.getCategory().getCategoryName());
+        }
+
         return transactionDto;
     }
 }

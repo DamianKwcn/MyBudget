@@ -8,7 +8,7 @@ spring:
   config:
     import: optional:configserver:8071
   kafka:
-    bootstrap-servers: "127.0.0.1:9092"
+    bootstrap-servers: "localhost:9092,localhost:9093,localhost:9094"
     consumer:
       group-id: "orchestrator-group"
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -43,13 +43,6 @@ logging:
       mybudget:
         accounts: DEBUG
       netflix.discovery: DEBUG
-
-resilience4j.ratelimiter:
-  configs:
-    default:
-      timeoutDuration: 1000
-      limitRefreshPeriod: 5000
-      limitForPeriod: 10
 
 info:
   app:

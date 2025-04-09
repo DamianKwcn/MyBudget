@@ -26,8 +26,8 @@ public class BalanceUpdateListener {
 
     @KafkaListener(topics = "balance-update-requests", groupId = "accounts-group")
     public void handleBalanceUpdateRequest(BalanceUpdateRequestedEvent event) {
-        log.info("Accounts: Received BalanceUpdateRequestedEvent [sub={}, amount={}, type={}]",
-                event.getKeycloakSub(), event.getAmount(), event.getTransactionType());
+        log.info("Accounts: Received BalanceUpdateRequestedEvent sub={}, transactionId={}, amount={}, type={}",
+                event.getKeycloakSub(),event.getTransactionId(), event.getAmount(), event.getTransactionType());
 
         try {
             BigDecimal updatedBalance = userService.updateBalance(
@@ -41,8 +41,8 @@ public class BalanceUpdateListener {
         } catch (IllegalArgumentException ex) {
             publishBalanceUpdateResult(event, TransactionStatus.FAILED, null);
             log.warn("Accounts: Transaction failed for sub={} due to insufficient funds or unknown transaction type.", event.getKeycloakSub());
-        } catch (Exception ex) {
-            log.error("Accounts: Error while processing balance update request: {}", ex.getMessage(), ex);
+        } catch (Exception e) {
+            log.error("Accounts: Error while processing balance update request={}", e.getMessage(), e);
             publishBalanceUpdateResult(event, TransactionStatus.FAILED, null);
         }
     }
@@ -68,7 +68,7 @@ public class BalanceUpdateListener {
 
         kafkaTemplate.send("balance-update-result", resultEvent);
 
-        log.info("Accounts: Published BalanceUpdateResultEvent [sub={}, amount={}, type={}, status={}]",
-                event.getKeycloakSub(), event.getAmount(), event.getTransactionType(), status);
+        log.info("Accounts: Published BalanceUpdateResultEvent sub={}, transactionId={}, amount={}, type={}, status={}",
+                event.getKeycloakSub(), event.getTransactionId(), event.getAmount(), event.getTransactionType(), status);
     }
 }

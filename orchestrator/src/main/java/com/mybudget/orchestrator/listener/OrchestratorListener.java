@@ -4,6 +4,8 @@ import com.mybudget.common.enums.TransactionStatus;
 import com.mybudget.common.event.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -14,10 +16,11 @@ import org.springframework.stereotype.Component;
 public class OrchestratorListener {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(OrchestratorListener.class);
 
     @KafkaListener(topics = "orchestrator-commands", groupId = "orchestrator-group")
     public void onTransactionSagaStart(TransactionSagaStartEvent event) {
-        log.info("Orchestrator: Received TransactionSagaStartEvent [transactionID={}, sub={}, amount={}, type={}]",
+        logger.info("Orchestrator: Received TransactionSagaStartEvent transactionID={}, sub={}, amount={}, type={}",
                 event.getTransactionId(), event.getKeycloakSub(), event.getAmount(), event.getTransactionType());
 
         BalanceUpdateRequestedEvent cmd = new BalanceUpdateRequestedEvent(
@@ -27,27 +30,28 @@ public class OrchestratorListener {
                 event.getTransactionType()
         );
         kafkaTemplate.send("balance-update-requests", cmd);
-        log.info("Orchestrator: Sent BalanceUpdateRequestedEvent to Accounts [sub={},transactionId={} amount={}, type={}]",
+        logger.info("Orchestrator: Sent BalanceUpdateRequestedEvent to Accounts [sub={},transactionId={} amount={}, type={}]",
                 event.getKeycloakSub(),event.getTransactionId(), event.getAmount(), event.getTransactionType());
     }
 
 
     @KafkaListener(topics = "balance-update-result", groupId = "orchestrator-group")
     public void onBalanceUpdateResult(BalanceUpdateResultEvent event) {
-        log.info("Orchestrator: balance update result: sub={} ,balance_after={}, amount={}, type={}, status={}",
+        logger.info("Orchestrator: balance update result: sub={} ,balance_after={}, amount={}, type={}, status={}",
                 event.getKeycloakSub(), event.getBalanceAfter(), event.getAmount(), event.getTransactionType(), event.getStatus());
 
         if (event.getStatus().equals(TransactionStatus.FAILED)) {
             TransactionRollbackEvent rollback = new TransactionRollbackEvent(event.getKeycloakSub(), event.getTransactionId(), TransactionStatus.FAILED);
             kafkaTemplate.send("transaction-rollback", rollback);
-            log.warn("Orchestrator: RollbackEvent sent for sub={}", event.getKeycloakSub());
+            logger.warn("Orchestrator: RollbackEvent sent for sub={}", event.getKeycloakSub());
         } else {
             TransactionConfirmEvent confirmEvent = new TransactionConfirmEvent(
                     event.getTransactionId(),
                     event.getKeycloakSub(),
                     event.getBalanceAfter());
             kafkaTemplate.send("transaction-confirm", confirmEvent);
-            log.info("Orchestrator: TransactionConfirmEvent sent for sub={}", event.getKeycloakSub());
+            logger.info("Orchestrator: TransactionConfirmEvent sent for sub={}, transactionID={}, amount={},balanceAfter={} type={}",
+                    event.getKeycloakSub(), event.getTransactionId(), event.getAmount(),event.getBalanceAfter(), event.getTransactionId());
         }
     }
 

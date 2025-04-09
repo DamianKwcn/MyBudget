@@ -23,7 +23,8 @@ public class TransactionListener {
 
     @KafkaListener(topics = "transaction-confirm", groupId = "transactions-group")
     public void onTransactionConfirm(TransactionConfirmEvent event) {
-        log.info("Transactions: Received TransactionConfirmEvent for sub={}", event.getKeycloakSub());
+        log.info("Transactions: Received TransactionConfirmEvent for sub={}, transactionId={}",
+                event.getKeycloakSub(),event.getTransactionId());
 
         if (event.getBalanceAfter().compareTo(BigDecimal.ZERO) < 0) {
             log.warn("Transactions: Negative balance detected for sub={}: balanceAfter={}",
@@ -35,7 +36,8 @@ public class TransactionListener {
                 transactionRepository.findFirstByKeycloakSubAndStatusOrderByIdAsc(
                         event.getKeycloakSub(), TransactionStatus.PENDING);
         if (optTransaction.isEmpty()) {
-            log.warn("Transactions: Could not find a pending transaction for sub={}", event.getKeycloakSub());
+            log.warn("Transactions: Could not find a pending transaction for sub={}, transactionId={}",
+                    event.getKeycloakSub(),event.getTransactionId());
             return;
         }
 
@@ -63,7 +65,7 @@ public class TransactionListener {
         transaction.setStatus(TransactionStatus.FAILED);
         transactionRepository.delete(transaction);
 
-        log.info("Transactions: Transaction ID={} for sub={} has been rolled back (removed)",
+        log.info("Transactions: Transaction ID={} for sub={} has been rolled back",
                 transaction.getId(), transaction.getKeycloakSub());
 
         throw new InsufficientFundsException(transaction.getKeycloakSub());
