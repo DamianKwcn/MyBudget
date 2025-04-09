@@ -32,11 +32,16 @@ public class UserController {
         String keycloakSub = jwtAuthToken.getToken().getSubject();
 
         User user = userService.findUserByKeycloakSub(keycloakSub);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         UserDto userDto = UserMapper.mapToUserDto(user, new UserDto());
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(userDto);
     }
+
 
     @PostMapping("/users/balance")
     public ResponseEntity<ResponseDto> setUserBalance(JwtAuthenticationToken jwtAuthToken,

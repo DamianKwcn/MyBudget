@@ -61,12 +61,10 @@ public class TransactionServiceImpl implements TransactionService {
             throw new IllegalArgumentException("Category " + category.getCategoryName() + " is not available for sub: " + keycloakSub);
         }
 
-        TransactionType type;
         try {
-            type = TransactionType.valueOf(transactionType.toUpperCase());
+            transactionType = String.valueOf(TransactionType.valueOf(transactionType.toUpperCase()));
         } catch (IllegalArgumentException e) {
-            logger.warn("Unknown transactionType: {}. Defaulting to EXPENSE", transactionType);
-            type = TransactionType.EXPENSE;
+            throw new IllegalArgumentException("Transaction of type " + transactionType+ " is not available");
         }
 
         Transaction transaction = new Transaction();
@@ -75,20 +73,21 @@ public class TransactionServiceImpl implements TransactionService {
         transaction.setAmount(amount);
         transaction.setCategory(category);
         transaction.setDescription(description);
-        transaction.setTransactionType(type);
+        transaction.setTransactionType(TransactionType.valueOf(transactionType));
 
         transactionRepository.save(transaction);
-        logger.info("Transaction created for sub:{}, ID: {}, type: {}, amount: {}",
+        logger.info("Creating transaction for sub:{}, ID: {}, type: {}, amount: {}",
                 keycloakSub, transaction.getId(), transaction.getTransactionType(), transaction.getAmount());
 
         TransactionSagaStartEvent event = new TransactionSagaStartEvent(
                 transaction.getId(),
                 keycloakSub,
                 amount,
-                type.name()
+                transactionType
         );
         kafkaTemplate.send("orchestrator-commands", event);
-        logger.info("SagaStartEvent published to Orchestrator with type: {}", type);
+        logger.info("SagaStartEvent published to Orchestrator with sub:{}, ID: {}, type: {}, amount: {}",
+                keycloakSub, transaction.getId(), transaction.getTransactionType(), transaction.getAmount());
 
         return transaction;
     }
