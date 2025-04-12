@@ -1,18 +1,16 @@
 package com.mybudget.keycloak_event_listener;
 
 import org.keycloak.Config;
-import org.keycloak.events.EventListenerProvider;
-import org.keycloak.events.EventListenerProviderFactory;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 
-public class MyCustomEventListenerProviderFactory implements EventListenerProviderFactory {
+public class EventListenerProviderFactory implements org.keycloak.events.EventListenerProviderFactory {
 
     private String baseUrl;
 
     @Override
-    public EventListenerProvider create(KeycloakSession session) {
-        return new MyCustomEventListenerProvider(baseUrl);
+    public org.keycloak.events.EventListenerProvider create(KeycloakSession session) {
+        return new EventListenerProvider(baseUrl);
     }
 
     @Override
