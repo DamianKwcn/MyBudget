@@ -12,7 +12,7 @@ public interface UserService {
 
     void setBalance(String keycloakSub, BigDecimal balance);
 
-    void deleteUserAndTransactions(String keycloakSub);
+    void deleteUserAndTransactions(String username);
 
     BigDecimal updateBalance(String keycloakSub, BigDecimal amount, String transactionType);
 }

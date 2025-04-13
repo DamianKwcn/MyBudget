@@ -1,1 +1,1 @@
-com.mybudget.keycloak_event_listener.MyCustomEventListenerProviderFactory
+com.mybudget.keycloak_event_listener.EventListenerProviderFactory

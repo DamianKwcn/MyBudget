@@ -31,6 +31,7 @@ public class UserKeycloakListenerController {
     @Getter
     public static class DeleteUserRequest {
         private String keycloakSub;
+        private String username;
     }
 
     @PostMapping("/initialize")
@@ -52,11 +53,9 @@ public class UserKeycloakListenerController {
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<Void> deleteUser(JwtAuthenticationToken jwtAuthToken) {
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-
-        userService.deleteUserAndTransactions(keycloakSub);
+    public ResponseEntity<Void> deleteUser(@RequestBody DeleteUserRequest deleteUserRequest) {
+        String username = deleteUserRequest.getUsername();
+        userService.deleteUserAndTransactions(username);
         return ResponseEntity.noContent().build();
     }
-
 }

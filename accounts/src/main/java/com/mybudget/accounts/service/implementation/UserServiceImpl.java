@@ -70,11 +70,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    public void deleteUserAndTransactions(String keycloakSub) {
-        User user = userRepository.findByKeycloakSub(keycloakSub)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "keycloakSub", keycloakSub));
-        userRepository.delete(user);
+    public void deleteUserAndTransactions(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
 
+        userRepository.delete(user);
     }
 
     @Transactional
