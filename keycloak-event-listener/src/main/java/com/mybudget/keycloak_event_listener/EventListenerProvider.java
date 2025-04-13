@@ -31,10 +31,10 @@ public class EventListenerProvider implements org.keycloak.events.EventListenerP
 
         try {
             if (EventType.REGISTER.equals(event.getType())) {
-                String userId           = event.getUserId();
-                String email            = event.getDetails().get("email");
-                String givenName        = event.getDetails().get("given_name");
-                String familyName       = event.getDetails().get("family_name");
+                String userId = event.getUserId();
+                String email = event.getDetails().get("email");
+                String givenName = event.getDetails().get("given_name");
+                String familyName = event.getDetails().get("family_name");
                 String preferredUsername= event.getDetails().get("username");
 
                 logger.infof("New user registered in Keycloak: %s, Email: %s", userId, email);
@@ -153,10 +153,10 @@ public class EventListenerProvider implements org.keycloak.events.EventListenerP
             this.preferredUsername = preferredUsername;
         }
 
-        public String getKeycloakSub()       { return keycloakSub; }
-        public String getEmail()             { return email; }
-        public String getGivenName()         { return givenName; }
-        public String getFamilyName()        { return familyName; }
+        public String getKeycloakSub() { return keycloakSub; }
+        public String getEmail() { return email; }
+        public String getGivenName() { return givenName; }
+        public String getFamilyName() { return familyName; }
         public String getPreferredUsername() { return preferredUsername; }
     }
 }

@@ -37,6 +37,7 @@ public class AccountsSecurityConfig {
                         (requests) -> requests
                                 .requestMatchers("/actuator/**").permitAll()
                                 .requestMatchers("/api/user/initialize").permitAll()
+                                .requestMatchers("/api/user/delete").permitAll()
                                 .anyRequest().authenticated()
                 );
         http.oauth2ResourceServer(rsc -> rsc.jwt(jwtConfigurer ->

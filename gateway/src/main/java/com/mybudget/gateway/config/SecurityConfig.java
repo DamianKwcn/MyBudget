@@ -35,6 +35,7 @@ public class SecurityConfig {
                         .pathMatchers("/actuator/**").permitAll()
                         .pathMatchers("/mybudget/orchestrator/**").permitAll()
                         .pathMatchers("/mybudget/accounts/api/user/initialize").permitAll()
+                        .pathMatchers("/mybudget/accounts/api/user/delete").permitAll()
                         .pathMatchers("/mybudget/accounts/**").hasRole("ACCOUNTS")
                         .pathMatchers("/mybudget/transactions/**").hasRole("TRANSACTIONS")
                         .anyExchange().authenticated()

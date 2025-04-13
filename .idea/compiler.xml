@@ -8,13 +8,13 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="eurekaserver" />
-        <module name="orchestrator" />
         <module name="keycloak-event-listener" />
         <module name="accounts" />
         <module name="configserver" />
         <module name="transactions" />
         <module name="mybudget-common" />
         <module name="gateway" />
+	<module name="orchestrator" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -32,7 +32,7 @@
       <module name="event-listener" options="-parameters" />
       <module name="gateway" options="-parameters" />
       <module name="keycloak-event-listener" options="" />
-      <module name="orchestrator" options="" />
+      <module name="orchestrator" options="-parameters" />
       <module name="sample_event_listener" options="-Xlint:unchecked" />
       <module name="transactions" options="-parameters" />
     </option>
