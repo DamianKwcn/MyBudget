@@ -22,6 +22,9 @@ public class Transaction {
     @Column(name = "keycloak_sub", nullable = false)
     private String keycloakSub;
 
+    @Column(name = "preferred_username")
+    private String username;
+
     @Column(nullable = false)
     private BigDecimal amount;
 

@@ -60,19 +60,21 @@ class TransactionServiceTest {
         Long categoryId = 1L;
         String description = "Test Transaction";
         String type = "income";
+        String username = "testuser";
         Category category = new Category(categoryId, "Food", TransactionType.INCOME, sub, false);
 
         when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
         when(transactionRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
 
         // when
-        Transaction result = transactionService.createTransaction(sub, amount, categoryId, description, type);
+        Transaction result = transactionService.createTransaction(sub, username, amount, categoryId, description, type);
 
         // then
         assertEquals(sub, result.getKeycloakSub());
+        assertEquals(username, result.getUsername());
         assertEquals(TransactionType.INCOME, result.getTransactionType());
         assertEquals(TransactionStatus.PENDING, result.getStatus());
-        verify(kafkaTemplate).send(eq("orchestrator-commands"), any(TransactionSagaStartEvent.class));
+        verify(kafkaTemplate).send(eq("transaction-saga-start"), any(TransactionSagaStartEvent.class));
     }
 
     @Test
@@ -86,7 +88,7 @@ class TransactionServiceTest {
 
         // when & then
         assertThrows(IllegalArgumentException.class,
-                () -> transactionService.createTransaction(sub, BigDecimal.TEN, categoryId, "desc", "EXPENSE")
+                () -> transactionService.createTransaction(sub, "testuser", BigDecimal.TEN, categoryId, "desc", "EXPENSE")
         );
 
         verify(transactionRepository, never()).save(any());

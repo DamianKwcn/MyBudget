@@ -15,6 +15,9 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.Optional;
 
+import static com.mybudget.common.kafka.Topics.QUEUING_ACCOUNTS_BALANCE_UPDATE_REQUEST_V1;
+import static com.mybudget.common.kafka.Topics.STREAMING_ACCOUNTS_BALANCE_UPDATE_RESULT_V1;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -24,7 +27,7 @@ public class BalanceUpdateListener {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final UserService userService;
 
-    @KafkaListener(topics = "balance-update-requests", groupId = "accounts-group")
+    @KafkaListener(topics = QUEUING_ACCOUNTS_BALANCE_UPDATE_REQUEST_V1, groupId = "accounts-group")
     public void handleBalanceUpdateRequest(BalanceUpdateRequestedEvent event) {
         log.info("Accounts: Received BalanceUpdateRequestedEvent sub={}, transactionId={}, amount={}, type={}",
                 event.getKeycloakSub(),event.getTransactionId(), event.getAmount(), event.getTransactionType());
@@ -66,7 +69,7 @@ public class BalanceUpdateListener {
                 status
         );
 
-        kafkaTemplate.send("balance-update-result", resultEvent);
+        kafkaTemplate.send(STREAMING_ACCOUNTS_BALANCE_UPDATE_RESULT_V1, resultEvent);
 
         log.info("Accounts: Published BalanceUpdateResultEvent sub={}, transactionId={}, amount={}, type={}, status={}",
                 event.getKeycloakSub(), event.getTransactionId(), event.getAmount(), event.getTransactionType(), status);
