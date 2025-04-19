@@ -5,13 +5,19 @@ import com.mybudget.accounts.exception.BalanceAlreadySetException;
 import com.mybudget.accounts.exception.ResourceNotFoundException;
 import com.mybudget.accounts.repository.UserRepository;
 import com.mybudget.accounts.service.UserService;
+import com.mybudget.common.event.CategoriesAfterUserDeleteEvent;
+import com.mybudget.common.event.TransactionsAfterUserDeleteEvent;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Optional;
+
+import static com.mybudget.common.kafka.Topics.QUEUING_USERS_DELETE_V1;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +25,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Override
     public User findUserByKeycloakSub(String keycloakSub) {
@@ -74,6 +81,13 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
 
+        TransactionsAfterUserDeleteEvent event = new TransactionsAfterUserDeleteEvent(
+                username
+        );
+
+        kafkaTemplate.send(QUEUING_USERS_DELETE_V1, event);
+
+        logger.info("Published TransactionsAfterUserDeleteEvent to user-deletion-commands for {}", username);
         userRepository.delete(user);
     }
 
