@@ -91,8 +91,10 @@ class TransactionControllerTest {
     @Test
     void shouldCreateExpenseTransaction() throws Exception {
         // Given
+        String username = "test-user";
         when(transactionService.createTransaction(
                 eq(subject),
+                eq(username),
                 eq(createExpenseDto.getAmount()),
                 eq(createExpenseDto.getCategoryId()),
                 eq(createExpenseDto.getDescription()),
@@ -101,7 +103,9 @@ class TransactionControllerTest {
 
         // When & Then
         mockMvc.perform(post("/api/transactions")
-                        .with(jwt().jwt(builder -> builder.claim("sub", subject)))
+                        .with(jwt().jwt(builder -> builder
+                                .claim("sub", subject)
+                                .claim("preferred_username", username)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createExpenseDto)))
                 .andExpect(status().isCreated())
@@ -111,6 +115,7 @@ class TransactionControllerTest {
 
         verify(transactionService, times(1)).createTransaction(
                 subject,
+                username,
                 createExpenseDto.getAmount(),
                 createExpenseDto.getCategoryId(),
                 createExpenseDto.getDescription(),

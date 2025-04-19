@@ -30,7 +30,6 @@ public class UserKeycloakListenerController {
 
     @Getter
     public static class DeleteUserRequest {
-        private String keycloakSub;
         private String username;
     }
 

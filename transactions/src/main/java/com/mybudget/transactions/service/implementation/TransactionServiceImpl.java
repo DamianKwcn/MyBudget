@@ -23,6 +23,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import static com.mybudget.common.kafka.Topics.STREAMING_TRANSACTIONS_SAGA_STARTED_V1;
+
 @Service
 @RequiredArgsConstructor
 public class TransactionServiceImpl implements TransactionService {
@@ -43,9 +45,16 @@ public class TransactionServiceImpl implements TransactionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction", "id", id.toString())));
     }
 
+    @Override
+    @Transactional
+    public void deleteAllByUsername(String username) {
+        transactionRepository.deleteAllByUsername(username);
+    }
+
     @Transactional
     @Override
     public Transaction createTransaction(String keycloakSub,
+                                         String username,
                                          BigDecimal amount,
                                          Long categoryId,
                                          String description,
@@ -70,6 +79,7 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction transaction = new Transaction();
         transaction.setStatus(TransactionStatus.PENDING);
         transaction.setKeycloakSub(keycloakSub);
+        transaction.setUsername(username);
         transaction.setAmount(amount);
         transaction.setCategory(category);
         transaction.setDescription(description);
@@ -85,7 +95,7 @@ public class TransactionServiceImpl implements TransactionService {
                 amount,
                 transactionType
         );
-        kafkaTemplate.send("orchestrator-commands", event);
+        kafkaTemplate.send(STREAMING_TRANSACTIONS_SAGA_STARTED_V1, event);
         logger.info("SagaStartEvent published to Orchestrator with sub:{}, ID: {}, type: {}, amount: {}",
                 keycloakSub, transaction.getId(), transaction.getTransactionType(), transaction.getAmount());
 
