@@ -35,8 +35,10 @@ public class TransactionController {
     public ResponseEntity<ResponseDto> createTransaction(JwtAuthenticationToken jwtAuthToken,
                                                          @Valid @RequestBody CreateTransactionDto createTransactionDto) {
         String keycloakSub = jwtAuthToken.getToken().getSubject();
+        String username = jwtAuthToken.getToken().getClaimAsString("preferred_username");
         transactionService.createTransaction(
                 keycloakSub,
+                username,
                 createTransactionDto.getAmount(),
                 createTransactionDto.getCategoryId(),
                 createTransactionDto.getDescription(),

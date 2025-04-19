@@ -22,4 +22,5 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     Optional<Transaction> findFirstByKeycloakSubAndStatusOrderByIdAsc(String keycloakSub, TransactionStatus status);
 
+    void deleteAllByUsername(String username);
 }
