@@ -26,10 +26,13 @@ public class CategoryServiceImpl implements CategoryService {
     public void createUserCategory(String keycloakSub, String categoryName, TransactionType transactionType) {
         logger.info("Creating category for sub: {}, category: {}", keycloakSub, categoryName);
 
-        Optional<Category> existing = categoryRepository.findByCategoryName(categoryName);
+        Optional<Category> existing = categoryRepository
+                .findByCategoryNameAndTransactionTypeAndKeycloakSub(
+                        categoryName, transactionType, keycloakSub);
+
         if (existing.isPresent()) {
-            logger.warn("Category with name {} already exists! Skipping creation.", categoryName);
-            throw new ResourceAlreadyExistsException("Category", "categoryName", categoryName);
+            throw new ResourceAlreadyExistsException(
+                    "Category", "categoryName", categoryName);
         }
 
         Category category = new Category();

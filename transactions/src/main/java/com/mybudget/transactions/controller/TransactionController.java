@@ -41,8 +41,7 @@ public class TransactionController {
                 username,
                 createTransactionDto.getAmount(),
                 createTransactionDto.getCategoryId(),
-                createTransactionDto.getDescription(),
-                String.valueOf(createTransactionDto.getTransactionType())
+                createTransactionDto.getDescription()
         );
 
         return ResponseEntity
