@@ -32,8 +32,14 @@ public class Transaction {
     private BigDecimal balanceAfter;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "transaction_type", nullable = false,
+            insertable = false, updatable = false)
     private TransactionType transactionType;
+
+    @PrePersist @PreUpdate
+    private void syncType() {
+        this.transactionType = category.getTransactionType();
+    }
 
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
