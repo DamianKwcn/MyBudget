@@ -33,10 +33,9 @@ public class Transaction {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false,
-            insertable = false, updatable = false)   //  ⬅️ blokada ORM-u
+            insertable = false, updatable = false)
     private TransactionType transactionType;
 
-    /** Callback JPA – ustawia kolumnę przy INSERT/UPDATE */
     @PrePersist @PreUpdate
     private void syncType() {
         this.transactionType = category.getTransactionType();
