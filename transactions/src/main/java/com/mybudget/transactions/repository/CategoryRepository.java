@@ -12,4 +12,6 @@ import java.util.Optional;
 public interface CategoryRepository extends JpaRepository<Category, Long> {
     Optional<Category> findByCategoryName(String categoryName);
     List<Category> findByKeycloakSubAndTransactionType(String keycloakSub, TransactionType transactionType);
+    Optional<Category> findByCategoryNameAndTransactionTypeAndKeycloakSub(
+            String categoryName, TransactionType type, String keycloakSub);
 }

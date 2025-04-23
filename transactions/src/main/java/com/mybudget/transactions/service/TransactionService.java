@@ -13,7 +13,7 @@ public interface TransactionService {
 
     void deleteAllByUsername(String username);
 
-    Transaction createTransaction(String keycloakSub, String username, BigDecimal amount, Long categoryId, String description, String transactionType);
+    Transaction createTransaction(String keycloakSub, String username, BigDecimal amount, Long categoryId, String description);
 
     List<Transaction> findByTransactionType(String keycloakSub, TransactionType transactionType);
 
