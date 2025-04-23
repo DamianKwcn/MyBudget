@@ -57,23 +57,19 @@ public class TransactionServiceImpl implements TransactionService {
                                          String username,
                                          BigDecimal amount,
                                          Long categoryId,
-                                         String description,
-                                         String transactionType) {
+                                         String description) {
 
-        logger.info("Creating transaction for sub: {}, amount: {}, type: {}",
-                keycloakSub, amount, transactionType);
+        logger.info("Creating transaction for sub: {}, amount: {}",
+                keycloakSub, amount);
 
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Category", "id", categoryId.toString()));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Category", "id", categoryId.toString()));
 
-        if (category.getKeycloakSub() != null && !category.getKeycloakSub().equals(keycloakSub)) {
-            throw new IllegalArgumentException("Category " + category.getCategoryName() + " is not available for sub: " + keycloakSub);
-        }
-
-        try {
-            transactionType = String.valueOf(TransactionType.valueOf(transactionType.toUpperCase()));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Transaction of type " + transactionType+ " is not available");
+        if (category.getKeycloakSub() != null &&
+                !category.getKeycloakSub().equals(keycloakSub)) {
+            throw new IllegalArgumentException(
+                    "Category " + category.getCategoryName() + " is not available for sub: " + keycloakSub);
         }
 
         Transaction transaction = new Transaction();
@@ -83,7 +79,6 @@ public class TransactionServiceImpl implements TransactionService {
         transaction.setAmount(amount);
         transaction.setCategory(category);
         transaction.setDescription(description);
-        transaction.setTransactionType(TransactionType.valueOf(transactionType));
 
         transactionRepository.save(transaction);
         logger.info("Creating transaction for sub:{}, ID: {}, type: {}, amount: {}",
@@ -93,7 +88,7 @@ public class TransactionServiceImpl implements TransactionService {
                 transaction.getId(),
                 keycloakSub,
                 amount,
-                transactionType
+                transaction.getTransactionType().name()
         );
         kafkaTemplate.send(STREAMING_TRANSACTIONS_SAGA_STARTED_V1, event);
         logger.info("SagaStartEvent published to Orchestrator with sub:{}, ID: {}, type: {}, amount: {}",

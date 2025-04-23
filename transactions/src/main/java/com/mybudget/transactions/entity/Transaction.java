@@ -32,8 +32,15 @@ public class Transaction {
     private BigDecimal balanceAfter;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "transaction_type", nullable = false,
+            insertable = false, updatable = false)   //  ⬅️ blokada ORM-u
     private TransactionType transactionType;
+
+    /** Callback JPA – ustawia kolumnę przy INSERT/UPDATE */
+    @PrePersist @PreUpdate
+    private void syncType() {
+        this.transactionType = category.getTransactionType();
+    }
 
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
