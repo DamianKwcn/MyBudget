@@ -9,9 +9,12 @@ import com.mybudget.transactions.exception.InsufficientFundsException;
 import com.mybudget.transactions.entity.Transaction;
 import com.mybudget.transactions.repository.CategoryRepository;
 import com.mybudget.transactions.repository.TransactionRepository;
+import com.mybudget.transactions.service.CategoryService;
 import com.mybudget.transactions.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -26,16 +29,17 @@ import static com.mybudget.common.kafka.Topics.*;
 public class TransactionListener {
 
     private final TransactionRepository transactionRepository;
-    private final CategoryRepository categoryRepository;
-    private final TransactionService transactionService;
+    private final CategoryService categoryService;
+
+    private static final Logger logger = LoggerFactory.getLogger(TransactionListener.class);
 
     @KafkaListener(topics = STREAMING_TRANSACTIONS_CONFIRMED_V1, groupId = "transactions-group")
     public void onTransactionConfirm(TransactionConfirmEvent event) {
-        log.info("Transactions: Received TransactionConfirmEvent for sub={}, transactionId={}",
+        logger.info("Transactions: Received TransactionConfirmEvent for sub={}, transactionId={}",
                 event.getKeycloakSub(),event.getTransactionId());
 
         if (event.getBalanceAfter().compareTo(BigDecimal.ZERO) < 0) {
-            log.warn("Transactions: Negative balance detected for sub={}: balanceAfter={}",
+            logger.warn("Transactions: Negative balance detected for sub={}: balanceAfter={}",
                     event.getKeycloakSub(), event.getBalanceAfter());
             throw new InsufficientFundsException(event.getKeycloakSub());
         }
@@ -44,7 +48,7 @@ public class TransactionListener {
                 transactionRepository.findFirstByKeycloakSubAndStatusOrderByIdAsc(
                         event.getKeycloakSub(), TransactionStatus.PENDING);
         if (optTransaction.isEmpty()) {
-            log.warn("Transactions: Could not find a pending transaction for sub={}, transactionId={}",
+            logger.warn("Transactions: Could not find a pending transaction for sub={}, transactionId={}",
                     event.getKeycloakSub(),event.getTransactionId());
             return;
         }
@@ -54,18 +58,18 @@ public class TransactionListener {
         transaction.setStatus(TransactionStatus.SUCCESS);
         transactionRepository.save(transaction);
 
-        log.info("Transactions: Transaction ID={} for sub={} has been CONFIRMED with Status={}",
+        logger.info("Transactions: Transaction ID={} for sub={} has been CONFIRMED with Status={}",
                 transaction.getId(), transaction.getKeycloakSub(), transaction.getStatus());
     }
 
     @KafkaListener(topics = STREAMING_TRANSACTIONS_ROLLED_BACK_V1, groupId = "transactions-group")
     public void onTransactionRollback(TransactionRollbackEvent event) {
-        log.warn("Transactions: Received TransactionRollbackEvent for sub={}", event.getKeycloakSub());
+        logger.warn("Transactions: Received TransactionRollbackEvent for sub={}", event.getKeycloakSub());
 
         Optional<Transaction> optTransaction = transactionRepository.findFirstByKeycloakSubAndStatusOrderByIdAsc(
                 event.getKeycloakSub(), TransactionStatus.PENDING);
         if (optTransaction.isEmpty()) {
-            log.warn("Transactions: Could not find a pending transaction for sub={}, so skipping rollback", event.getKeycloakSub());
+            logger.warn("Transactions: Could not find a pending transaction for sub={}, so skipping rollback", event.getKeycloakSub());
             return;
         }
 
@@ -73,16 +77,16 @@ public class TransactionListener {
         transaction.setStatus(TransactionStatus.FAILED);
         transactionRepository.delete(transaction);
 
-        log.info("Transactions: Transaction ID={} for sub={} has been rolled back",
+        logger.info("Transactions: Transaction ID={} for sub={} has been rolled back",
                 transaction.getId(), transaction.getKeycloakSub());
 
         throw new InsufficientFundsException(transaction.getKeycloakSub());
     }
 
-    @KafkaListener(topics = QUEUING_TRANSACTIONS_DELETE_V1, groupId="transactions-group")
-    public void onUserDeleteTransactions(TransactionsAfterUserDeleteEvent event) {
-        log.info("Transactions: delete all for user={}", event.getUsername());
-        transactionService.deleteAllByUsername(event.getUsername());
+    @KafkaListener(topics = QUEUING_CATEGORIES_DELETE_V1, groupId="transactions-group")
+    public void onUserDeleteTransactions(CategoriesAfterUserDeleteEvent event) {
+        logger.info("Transactions: delete all for user={}", event.getUsername());
+        categoryService.deleteAllByUsernameAfterDeletingAccount(event.getUsername());
     }
 
 }

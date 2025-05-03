@@ -19,7 +19,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -35,10 +34,8 @@ public class TransactionController {
     public ResponseEntity<ResponseDto> createTransaction(JwtAuthenticationToken jwtAuthToken,
                                                          @Valid @RequestBody CreateTransactionDto createTransactionDto) {
         String keycloakSub = jwtAuthToken.getToken().getSubject();
-        String username = jwtAuthToken.getToken().getClaimAsString("preferred_username");
         transactionService.createTransaction(
                 keycloakSub,
-                username,
                 createTransactionDto.getAmount(),
                 createTransactionDto.getCategoryId(),
                 createTransactionDto.getDescription()
@@ -62,13 +59,13 @@ public class TransactionController {
                 .body(transactionsDto);
     }
 
-    @RateLimiter(name = "getTransactionById")
+    @RateLimiter(name = "getTransaction")
     @GetMapping("/transactions/{id}")
-    public ResponseEntity<TransactionDto> getTransactionById(JwtAuthenticationToken jwtAuthToken,
-                                                             @PathVariable Long id) {
+    public ResponseEntity<TransactionDto> getTransaction(JwtAuthenticationToken jwtAuthToken,
+                                                         @PathVariable Long id) {
         String keycloakSub = jwtAuthToken.getToken().getSubject();
-        Optional<Transaction> transaction = transactionService.findTransaction(keycloakSub, id);
-        TransactionDto transactionDto = TransactionMapper.mapToTransactionDto(transaction.orElseThrow(), new TransactionDto());
+        Transaction transaction = transactionService.findByKeycloakSubAndId(keycloakSub, id);
+        TransactionDto transactionDto = TransactionMapper.mapToTransactionDto(transaction, new TransactionDto());
         return ResponseEntity.ok(transactionDto);
     }
 

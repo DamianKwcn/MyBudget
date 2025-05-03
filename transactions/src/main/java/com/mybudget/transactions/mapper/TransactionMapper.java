@@ -8,17 +8,16 @@ public class TransactionMapper {
         transaction.setAmount(transactionDto.getAmount());
         transaction.setBalanceAfter(transactionDto.getBalanceAfter());
         transaction.setDescription(transactionDto.getDescription());
-        transaction.setCreatedAt(transactionDto.getCreatedAt());
         return transaction;
     }
 
-    public static TransactionDto mapToTransactionDto(Transaction tx, TransactionDto dto) {
-        dto.setAmount(tx.getAmount());
-        dto.setBalanceAfter(tx.getBalanceAfter());
-        dto.setTransactionType(tx.getCategory().getTransactionType());
-        dto.setDescription(tx.getDescription());
-        dto.setCreatedAt(tx.getCreatedAt());
-        dto.setCategoryName(tx.getCategory().getCategoryName());
-        return dto;
+    public static TransactionDto mapToTransactionDto(Transaction transaction, TransactionDto transactionDto) {
+        transactionDto.setAmount(transaction.getAmount());
+        transactionDto.setBalanceAfter(transaction.getBalanceAfter());
+        transactionDto.setTransactionType(transaction.getTransactionType());
+        transactionDto.setDescription(transaction.getDescription());
+        transactionDto.setCreatedAt(transaction.getCreatedAt());
+        transactionDto.setCategoryName(transaction.getCategory().getCategoryName());
+        return transactionDto;
     }
 }
