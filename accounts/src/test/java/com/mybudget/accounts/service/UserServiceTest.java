@@ -140,7 +140,7 @@ public class UserServiceTest {
                 .thenReturn(Optional.of(testUserWithBalance));
 
         // WHEN
-        userService.deleteUserAndTransactions(testUserWithBalance.getKeycloakSub());
+        userService.deleteUserCategoriesAndTransactions(testUserWithBalance.getKeycloakSub());
 
         // THEN
         verify(userRepository, times(1)).delete(testUserWithBalance);

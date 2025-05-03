@@ -1,7 +1,6 @@
 package com.mybudget.accounts.service;
 
 import com.mybudget.accounts.entity.User;
-import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
 
@@ -12,7 +11,8 @@ public interface UserService {
 
     void setBalance(String keycloakSub, BigDecimal balance);
 
-    void deleteUserAndTransactions(String username);
+    void deleteUserCategoriesAndTransactions(String username);
 
     BigDecimal updateBalance(String keycloakSub, BigDecimal amount, String transactionType);
+
 }

@@ -8,8 +8,6 @@ import com.mybudget.transactions.entity.Transaction;
 import com.mybudget.transactions.entity.enums.TransactionType;
 import com.mybudget.transactions.service.TransactionService;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -179,7 +177,7 @@ class TransactionControllerTest {
     void shouldReturnTransactionById() throws Exception {
         // Given
         Long transactionId = 1L;
-        when(transactionService.findTransaction(subject, transactionId))
+        when(transactionService.findByKeycloakSubAndId(subject, transactionId))
                 .thenReturn(Optional.of(expenseTransaction));
 
         // When & Then

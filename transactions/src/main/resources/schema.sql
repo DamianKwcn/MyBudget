@@ -1,19 +1,12 @@
 CREATE TABLE categories (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    category_name VARCHAR(255) NOT NULL,
+    keycloak_sub VARCHAR(255) NOT NULL,
+    category_name VARCHAR(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+    preferred_username VARCHAR(255) DEFAULT NULL,
+    category_balance DECIMAL(19,2) NOT NULL DEFAULT 0,
     transaction_type VARCHAR(50) NOT NULL,
-    keycloak_sub VARCHAR(255) DEFAULT NULL,
-    built_in BOOLEAN NOT NULL
+    CONSTRAINT uq_category UNIQUE (keycloak_sub, category_name)
 );
-
-INSERT INTO categories (category_name, transaction_type, keycloak_sub, built_in) VALUES
-('Salary', 'INCOME', NULL, true),
-('Gift', 'INCOME', NULL, true);
-
-INSERT INTO categories (category_name, transaction_type, keycloak_sub, built_in) VALUES
-('Car', 'EXPENSE', NULL, true),
-('Home', 'EXPENSE', NULL, true),
-('Health', 'EXPENSE', NULL, true)
 
 CREATE TABLE transactions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -21,8 +14,14 @@ CREATE TABLE transactions (
     amount DECIMAL(19,2) NOT NULL,
     balance_after DECIMAL(19,2),
     transaction_type VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL,
     category_id BIGINT NOT NULL,
     description VARCHAR(255),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_category FOREIGN KEY (category_id) REFERENCES categories(id)
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_category
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_tx_user          ON transactions(keycloak_sub);
+CREATE INDEX idx_tx_user_type     ON transactions(keycloak_sub, transaction_type);
+CREATE INDEX idx_tx_category_user ON transactions(category_id, keycloak_sub);

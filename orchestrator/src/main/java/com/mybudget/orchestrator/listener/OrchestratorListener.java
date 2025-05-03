@@ -2,6 +2,7 @@ package com.mybudget.orchestrator.listener;
 
 import com.mybudget.common.enums.TransactionStatus;
 import com.mybudget.common.event.*;
+import com.mybudget.common.kafka.Topics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -25,16 +26,16 @@ public class OrchestratorListener {
         logger.info("Orchestrator: Received TransactionSagaStartEvent transactionID={}, sub={}, amount={}, type={}",
                 event.getTransactionId(), event.getKeycloakSub(), event.getAmount(), event.getTransactionType());
 
-        BalanceUpdateRequestedEvent cmd = new BalanceUpdateRequestedEvent(
+        BalanceUpdateRequestedEvent confirmEvent = new BalanceUpdateRequestedEvent(
                 event.getKeycloakSub(),
                 event.getTransactionId(),
                 event.getAmount(),
                 event.getTransactionType()
         );
-        kafkaTemplate.send(QUEUING_ACCOUNTS_BALANCE_UPDATE_REQUEST_V1, cmd);
+        kafkaTemplate.send(QUEUING_ACCOUNTS_BALANCE_UPDATE_REQUEST_V1, confirmEvent);
 
         logger.info("Orchestrator: Sent BalanceUpdateRequestedEvent to Accounts sub={},transactionId={} amount={}, type={}",
-                event.getKeycloakSub(),event.getTransactionId(), event.getAmount(), event.getTransactionType());
+                confirmEvent.getKeycloakSub(),confirmEvent.getTransactionId(), confirmEvent.getAmount(), confirmEvent.getTransactionType());
     }
 
 
@@ -62,12 +63,24 @@ public class OrchestratorListener {
         }
     }
 
-    @KafkaListener(topics="user-deletion-commands", groupId="orchestrator-group")
-    public void onUserDelete(TransactionsAfterUserDeleteEvent e) {
-        logger.info("Orchestrator: UserDelete event send with username={}", e.getUsername());
+    @KafkaListener(topics = Topics.STREAMING_USERS_CREATED_V1, groupId = "orchestrator-group")
+    public void onUserCreated(UserCreatedEvent event) {
+        logger.info("Orchestrator: received UserCreatedEvent sub={}, username={}",
+                event.getKeycloakSub(), event.getUsername());
 
-        kafkaTemplate.send(QUEUING_TRANSACTIONS_DELETE_V1, new TransactionsAfterUserDeleteEvent(e.getUsername()));
-        kafkaTemplate.send(QUEUING_CATEGORIES_DELETE_V1,   new CategoriesAfterUserDeleteEvent(e.getUsername()));
+        CategoryDefaultCreateEvent confirmEvent =
+                new CategoryDefaultCreateEvent(event.getKeycloakSub(), event.getUsername());
+
+        kafkaTemplate.send(Topics.QUEUING_CATEGORIES_CREATE_DEFAULT_V1, confirmEvent);
+
+        logger.info("Orchestrator: sent CategoryDefaultCreateEvent for sub={}, username={}",
+                event.getKeycloakSub(), event.getUsername());
+    }
+
+    @KafkaListener(topics= QUEUING_USERS_DELETE_V1, groupId="orchestrator-group")
+    public void onUserDelete(TransactionsAfterUserDeleteEvent event) {
+        logger.info("Orchestrator: UserDelete event send with username={}", event.getUsername());
+        kafkaTemplate.send(QUEUING_CATEGORIES_DELETE_V1, new CategoriesAfterUserDeleteEvent(event.getUsername()));
     }
 
 }

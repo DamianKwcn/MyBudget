@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
@@ -54,7 +53,7 @@ public class UserKeycloakListenerController {
     @DeleteMapping("/delete")
     public ResponseEntity<Void> deleteUser(@RequestBody DeleteUserRequest deleteUserRequest) {
         String username = deleteUserRequest.getUsername();
-        userService.deleteUserAndTransactions(username);
+        userService.deleteUserCategoriesAndTransactions(username);
         return ResponseEntity.noContent().build();
     }
 }
