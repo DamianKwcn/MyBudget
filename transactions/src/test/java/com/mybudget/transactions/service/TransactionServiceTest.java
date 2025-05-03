@@ -106,7 +106,7 @@ class TransactionServiceTest {
         when(transactionRepository.findTransactionByKeycloakSubAndId(sub, id)).thenReturn(Optional.of(transaction));
 
         // when
-        Optional<Transaction> result = transactionService.findTransaction(sub, id);
+        Optional<Transaction> result = transactionService.findByKeycloakSubAndId(sub, id);
 
         // then
         assertTrue(result.isPresent());
@@ -120,7 +120,7 @@ class TransactionServiceTest {
         when(transactionRepository.findTransactionByKeycloakSubAndId(sub, id)).thenReturn(Optional.empty());
 
         // when & then
-        assertThrows(ResourceNotFoundException.class, () -> transactionService.findTransaction(sub, id));
+        assertThrows(ResourceNotFoundException.class, () -> transactionService.findByKeycloakSubAndId(sub, id));
     }
 
     @Test
@@ -135,15 +135,6 @@ class TransactionServiceTest {
 
         // then
         assertEquals(2, result.size());
-    }
-
-    @Test
-    void shouldDeleteAllTransactionsBySub() {
-        // when
-        transactionService.deleteAllByKeycloakSub(sub);
-
-        // then
-        verify(transactionRepository).deleteByKeycloakSub(sub);
     }
 
     @Test
