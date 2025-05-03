@@ -5,17 +5,17 @@ import com.mybudget.accounts.exception.BalanceAlreadySetException;
 import com.mybudget.accounts.exception.ResourceNotFoundException;
 import com.mybudget.accounts.repository.UserRepository;
 import com.mybudget.accounts.service.UserService;
-import com.mybudget.common.event.CategoriesAfterUserDeleteEvent;
 import com.mybudget.common.event.TransactionsAfterUserDeleteEvent;
-import jakarta.transaction.Transactional;
+import com.mybudget.common.event.UserCreatedEvent;
+import com.mybudget.common.kafka.Topics;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Optional;
 
 import static com.mybudget.common.kafka.Topics.QUEUING_USERS_DELETE_V1;
 
@@ -28,6 +28,7 @@ public class UserServiceImpl implements UserService {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Override
+    @Transactional(readOnly = true)
     public User findUserByKeycloakSub(String keycloakSub) {
         logger.debug("Searching for user with keycloakSub={}", keycloakSub);
         return userRepository.findByKeycloakSub(keycloakSub)
@@ -54,6 +55,12 @@ public class UserServiceImpl implements UserService {
         user.setBalance(BigDecimal.ZERO);
         userRepository.save(user);
 
+        kafkaTemplate.send(
+                Topics.STREAMING_USERS_CREATED_V1,
+                new UserCreatedEvent(keycloakSub, username)
+        );
+
+        logger.info("Published UserCreatedEvent for sub={}, username={}", keycloakSub, username);
         logger.info("User successfully created with keycloakSub={}", keycloakSub);
     }
 
@@ -77,7 +84,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    public void deleteUserAndTransactions(String username) {
+    @Override
+    public void deleteUserCategoriesAndTransactions(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
 
@@ -124,32 +132,5 @@ public class UserServiceImpl implements UserService {
                 keycloakSub, oldBalance, newBalance);
 
         return newBalance;
-    }
-
-    @Transactional
-    public void updateBalanceAfterDelete(String keycloakSub, BigDecimal amount, boolean isIncome) {
-        logger.info("Updating balance for user with keycloakSub: {}, amount: {}, isIncome: {}",
-                keycloakSub, amount, isIncome);
-
-        User user = findUserByKeycloakSub(keycloakSub);
-
-        if (user.getBalance() == null) {
-            logger.warn("User with keycloakSub: {} has null balance. Initializing to 0.", keycloakSub);
-            user.setBalance(BigDecimal.ZERO);
-        }
-
-        BigDecimal oldBalance = user.getBalance();
-        BigDecimal newBalance = isIncome ? oldBalance.subtract(amount) : oldBalance.add(amount);
-
-        if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
-            logger.warn("Insufficient funds for user with keycloakSub: {}. Current balance: {}, attempted withdrawal: {}",
-                    keycloakSub, oldBalance, amount);
-            throw new IllegalArgumentException("Insufficient funds");
-        }
-
-        user.setBalance(newBalance);
-        userRepository.save(user);
-        logger.info("Balance updated for user with keycloakSub={}, old balance={}, newBalance={}",
-                keycloakSub, oldBalance, newBalance);
     }
 }

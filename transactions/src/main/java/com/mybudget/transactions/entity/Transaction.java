@@ -22,18 +22,14 @@ public class Transaction {
     @Column(name = "keycloak_sub", nullable = false)
     private String keycloakSub;
 
-    @Column(name = "preferred_username")
-    private String username;
-
     @Column(nullable = false)
     private BigDecimal amount;
 
-    @Column(nullable = true)
+    @Column
     private BigDecimal balanceAfter;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "transaction_type", nullable = false,
-            insertable = false, updatable = false)
+    @Column(name = "transaction_type", nullable = false)
     private TransactionType transactionType;
 
     @PrePersist @PreUpdate
@@ -41,7 +37,7 @@ public class Transaction {
         this.transactionType = category.getTransactionType();
     }
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
