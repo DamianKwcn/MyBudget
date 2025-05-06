@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 @Builder
 public class CreateTransactionDto {
 
-    @NotBlank(message = "Amount cannot be blank")
+    @NotNull(message = "Amount cannot be null")
     @DecimalMin(value = "0.0", inclusive = true, message = "Amount must be non-negative")
     @Digits(integer = 10, fraction = 2, message = "Amount must be a numeric value with up to 2 decimal places")
     private BigDecimal amount;

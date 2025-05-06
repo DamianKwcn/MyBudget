@@ -7,14 +7,14 @@ import com.mybudget.transactions.dto.TransactionDto;
 import com.mybudget.transactions.entity.Transaction;
 import com.mybudget.transactions.entity.enums.TransactionType;
 import com.mybudget.transactions.mapper.TransactionMapper;
-import com.mybudget.transactions.service.TransactionService;
+import com.mybudget.transactions.service.TransactionCommandService;
+import com.mybudget.transactions.service.TransactionQueryService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,15 +27,13 @@ import java.util.List;
         produces = {MediaType.APPLICATION_JSON_VALUE})
 @Validated
 public class TransactionController {
-    private final TransactionService transactionService;
+    private final TransactionCommandService transactionCommandService;
+    private final TransactionQueryService transactionQueryService;
 
     @RateLimiter(name = "createTransaction")
     @PostMapping("/transactions")
-    public ResponseEntity<ResponseDto> createTransaction(JwtAuthenticationToken jwtAuthToken,
-                                                         @Valid @RequestBody CreateTransactionDto createTransactionDto) {
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-        transactionService.createTransaction(
-                keycloakSub,
+    public ResponseEntity<ResponseDto> createTransaction(@Valid @RequestBody CreateTransactionDto createTransactionDto) {
+        transactionCommandService.createTransaction(
                 createTransactionDto.getAmount(),
                 createTransactionDto.getCategoryId(),
                 createTransactionDto.getDescription()
@@ -48,9 +46,8 @@ public class TransactionController {
 
     @RateLimiter(name = "getTransactions")
     @GetMapping("/transactions")
-    public ResponseEntity<List<TransactionDto>> getTransactions(JwtAuthenticationToken jwtAuthToken) {
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-        List<Transaction> transactions = transactionService.findTransactions(keycloakSub);
+    public ResponseEntity<List<TransactionDto>> getTransactions() {
+        List<Transaction> transactions = transactionQueryService.findTransactions();
         List<TransactionDto> transactionsDto = transactions.stream()
                 .map(transaction -> TransactionMapper.mapToTransactionDto(transaction, new TransactionDto()))
                 .toList();
@@ -61,19 +58,15 @@ public class TransactionController {
 
     @RateLimiter(name = "getTransaction")
     @GetMapping("/transactions/{id}")
-    public ResponseEntity<TransactionDto> getTransaction(JwtAuthenticationToken jwtAuthToken,
-                                                         @PathVariable Long id) {
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-        Transaction transaction = transactionService.findByKeycloakSubAndId(keycloakSub, id);
+    public ResponseEntity<TransactionDto> getTransaction(@PathVariable Long id) {
+        Transaction transaction = transactionQueryService.findByKeycloakSubAndId(id);
         TransactionDto transactionDto = TransactionMapper.mapToTransactionDto(transaction, new TransactionDto());
         return ResponseEntity.ok(transactionDto);
     }
 
     @DeleteMapping("/transactions/{id}")
-    public ResponseEntity<ResponseDto> deleteTransaction(JwtAuthenticationToken jwtAuthToken,
-                                                         @PathVariable Long id) {
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-        transactionService.deleteTransaction(keycloakSub, id);
+    public ResponseEntity<ResponseDto> deleteTransaction(@PathVariable Long id) {
+        transactionCommandService.deleteTransaction(id);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(new ResponseDto(TransactionConstants.STATUS_200, TransactionConstants.MESSAGE_200));
@@ -81,9 +74,8 @@ public class TransactionController {
 
     @RateLimiter(name = "getExpenses")
     @GetMapping("/expenses")
-    public ResponseEntity<List<TransactionDto>> getExpenses(JwtAuthenticationToken jwtAuthToken) {
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-        List<Transaction> expenses = transactionService.findByTransactionType(keycloakSub, TransactionType.EXPENSE);
+    public ResponseEntity<List<TransactionDto>> getExpenses() {
+        List<Transaction> expenses = transactionQueryService.findByTransactionType(TransactionType.EXPENSE);
         List<TransactionDto> dtos = expenses.stream()
                 .map(transaction -> TransactionMapper.mapToTransactionDto(transaction, new TransactionDto()))
                 .toList();
@@ -92,9 +84,8 @@ public class TransactionController {
 
     @RateLimiter(name = "getIncomes")
     @GetMapping("/incomes")
-    public ResponseEntity<List<TransactionDto>> getIncomes(JwtAuthenticationToken jwtAuthToken) {
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-        List<Transaction> incomes = transactionService.findByTransactionType(keycloakSub, TransactionType.INCOME);
+    public ResponseEntity<List<TransactionDto>> getIncomes() {
+        List<Transaction> incomes = transactionQueryService.findByTransactionType(TransactionType.INCOME);
         List<TransactionDto> dtos = incomes.stream()
                 .map(transaction -> TransactionMapper.mapToTransactionDto(transaction, new TransactionDto()))
                 .toList();
