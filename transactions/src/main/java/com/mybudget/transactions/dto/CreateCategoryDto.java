@@ -9,11 +9,11 @@ import lombok.Data;
 @Data
 public class CreateCategoryDto {
 
-    @NotBlank(message = "Category name cannot be null")
+    @NotNull(message = "Category name cannot be null")
     @Size(max = 20, message = "Category name can have up to 20 characters")
     private String categoryName;
 
-    @NotBlank(message = "Transaction type cannot be blank. Required EXPENSE/INCOME.")
+    @NotNull(message = "Transaction type cannot be null. Required EXPENSE/INCOME.")
     private TransactionType transactionType;
 
 }

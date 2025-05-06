@@ -1,5 +1,6 @@
 package com.mybudget.accounts.service.implementation;
 
+import com.mybudget.accounts.common.CurrentUserProvider;
 import com.mybudget.accounts.entity.User;
 import com.mybudget.accounts.exception.BalanceAlreadySetException;
 import com.mybudget.accounts.exception.ResourceNotFoundException;
@@ -22,10 +23,10 @@ import static com.mybudget.common.kafka.Topics.QUEUING_USERS_DELETE_V1;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
     private final UserRepository userRepository;
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final CurrentUserProvider currentUser;
 
     @Override
     @Transactional(readOnly = true)
@@ -66,7 +67,8 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @Override
-    public void setBalance(String keycloakSub, BigDecimal balance) {
+    public void setBalance(BigDecimal balance) {
+        String keycloakSub = currentUser.getKeycloakSub();
         logger.info("Setting balance for user with keycloakSub={} to newBalance={}", keycloakSub, balance);
 
         User user = findUserByKeycloakSub(keycloakSub);

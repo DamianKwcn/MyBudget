@@ -44,11 +44,8 @@ public class UserController {
 
 
     @PostMapping("/users/balance")
-    public ResponseEntity<ResponseDto> setUserBalance(JwtAuthenticationToken jwtAuthToken,
-                                                      @Valid @RequestBody BalanceDto balanceDto) {
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-
-        userService.setBalance(keycloakSub, balanceDto.getBalance());
+    public ResponseEntity<ResponseDto> setUserBalance(@Valid @RequestBody BalanceDto balanceDto) {
+        userService.setBalance(balanceDto.getBalance());
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(new ResponseDto(UserConstants.STATUS_200, UserConstants.MESSAGE_200));
