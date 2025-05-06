@@ -6,7 +6,6 @@ import com.mybudget.transactions.dto.CreateTransactionDto;
 import com.mybudget.transactions.entity.Category;
 import com.mybudget.transactions.entity.Transaction;
 import com.mybudget.transactions.entity.enums.TransactionType;
-import com.mybudget.transactions.service.TransactionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

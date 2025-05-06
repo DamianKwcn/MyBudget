@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mybudget.transactions.constants.TransactionConstants;
 import com.mybudget.transactions.dto.CreateCategoryDto;
 import com.mybudget.transactions.entity.enums.TransactionType;
-import com.mybudget.transactions.service.CategoryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;

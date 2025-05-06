@@ -2,13 +2,13 @@ package com.mybudget.transactions.service.implementation;
 
 import com.mybudget.common.enums.TransactionStatus;
 import com.mybudget.common.event.TransactionSagaStartEvent;
+import com.mybudget.transactions.common.CurrentUserProvider;
 import com.mybudget.transactions.entity.Category;
 import com.mybudget.transactions.entity.Transaction;
-import com.mybudget.transactions.entity.enums.TransactionType;
 import com.mybudget.transactions.exception.ResourceNotFoundException;
 import com.mybudget.transactions.repository.CategoryRepository;
 import com.mybudget.transactions.repository.TransactionRepository;
-import com.mybudget.transactions.service.TransactionService;
+import com.mybudget.transactions.service.TransactionCommandService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,40 +17,25 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 import static com.mybudget.common.kafka.Topics.STREAMING_TRANSACTIONS_SAGA_STARTED_V1;
 
 @Service
 @RequiredArgsConstructor
-public class TransactionServiceImpl implements TransactionService {
-
+@Transactional
+public class TransactionCommandServiceImpl implements TransactionCommandService {
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    private static final Logger logger = LoggerFactory.getLogger(TransactionServiceImpl.class);
-
-    @Transactional
-    public void deleteAllByKeycloakSub(String keycloakSub) {
-        if (keycloakSub == null) {
-            throw new ResourceNotFoundException("KeycloakSub", "keycloakSub", "not found");
-        }
-        transactionRepository.deleteByKeycloakSub(keycloakSub);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Transaction findByKeycloakSubAndId(String keycloakSub, Long id) {
-        return transactionRepository.findTransactionByKeycloakSubAndId(keycloakSub, id)
-                .orElseThrow(() -> new ResourceNotFoundException(keycloakSub, "Transaction", id.toString()));
-    }
+    private final CurrentUserProvider currentUser;
+    private static final Logger logger = LoggerFactory.getLogger(TransactionCommandServiceImpl.class);
 
     @Transactional
     @Override
-    public Transaction createTransaction(String keycloakSub,
-                                         BigDecimal amount,
+    public Transaction createTransaction(BigDecimal amount,
                                          Long categoryId,
                                          String description) {
+        String keycloakSub = currentUser.getKeycloakSub();
 
         logger.info("Creating transaction for sub={}, amount={}",
                 keycloakSub, amount);
@@ -92,30 +77,11 @@ public class TransactionServiceImpl implements TransactionService {
         return transaction;
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<Transaction> findByTransactionType(String keycloakSub, TransactionType transactionType) {
-        return transactionRepository.findByKeycloakSubAndTransactionType(keycloakSub, transactionType);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<Transaction> findTransactions(String keycloakSub) {
-        return transactionRepository.findTransactionsByKeycloakSub(keycloakSub);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<Transaction> findByCategory(String keycloakSub, Long categoryId) {
-        return transactionRepository.findByCategoryIdAndKeycloakSub(categoryId, keycloakSub);
-    }
-
     @Transactional
     @Override
-    public void deleteTransaction(String keycloakSub, Long id) {
-
+    public void deleteTransaction(Long id) {
         Transaction transaction = transactionRepository
-                .findTransactionByKeycloakSubAndId(keycloakSub, id)
+                .findByKeycloakSubAndId(currentUser.getKeycloakSub(), id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Transaction", "id", id.toString()));
 
