@@ -1,7 +1,6 @@
 package com.mybudget.transactions.controller;
 
 import com.mybudget.transactions.constants.CategoryConstants;
-import com.mybudget.transactions.constants.TransactionConstants;
 import com.mybudget.transactions.dto.CategoryDto;
 import com.mybudget.transactions.dto.CreateCategoryDto;
 import com.mybudget.transactions.dto.ResponseDto;
@@ -11,34 +10,33 @@ import com.mybudget.transactions.entity.Transaction;
 import com.mybudget.transactions.entity.enums.TransactionType;
 import com.mybudget.transactions.mapper.CategoryMapper;
 import com.mybudget.transactions.mapper.TransactionMapper;
-import com.mybudget.transactions.service.CategoryService;
-import com.mybudget.transactions.service.TransactionService;
+import com.mybudget.transactions.service.CategoryCommandService;
+import com.mybudget.transactions.service.CategoryQueryService;
+import com.mybudget.transactions.service.TransactionQueryService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
 public class CategoryController {
 
-    private final CategoryService categoryService;
-    private final TransactionService transactionService;
+    private final CategoryCommandService categoryCommandService;
+    private final CategoryQueryService categoryQueryService;
+    private final TransactionQueryService transactionQueryService;
 
     @RateLimiter(name = "createCategory")
     @PostMapping("/categories")
     public ResponseEntity<ResponseDto> createCategory(
             @Valid @RequestBody CreateCategoryDto dto) {
 
-        categoryService.createUserCategory(
+        categoryCommandService.createUserCategory(
                 dto.getCategoryName(),
                 dto.getTransactionType());
 
@@ -49,11 +47,9 @@ public class CategoryController {
     }
 
     @GetMapping("/categories/{categoryId}")
-    public ResponseEntity<CategoryDto> getCategory(JwtAuthenticationToken jwtAuthToken,
-                                                   @PathVariable Long categoryId) {
+    public ResponseEntity<CategoryDto> getCategory(@PathVariable Long categoryId) {
 
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-        Category category = categoryService.findUserCategory(keycloakSub,categoryId);
+        Category category = categoryQueryService.findUserCategory(categoryId);
         CategoryDto categoryDto = CategoryMapper.mapToCategoryDto(category, new CategoryDto());
 
         return ResponseEntity
@@ -62,10 +58,8 @@ public class CategoryController {
     }
 
     @GetMapping("/categories/type/{transactionType}")
-    public ResponseEntity<List<CategoryDto>> getCategoriesByType(JwtAuthenticationToken jwtAuthToken,
-                                                                 @PathVariable("transactionType") TransactionType transactionType) {
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-        List<Category> categories = categoryService.findCategoriesByType(keycloakSub, transactionType);
+    public ResponseEntity<List<CategoryDto>> getCategoriesByType(@PathVariable("transactionType") TransactionType transactionType) {
+        List<Category> categories = categoryQueryService.findCategoriesByType(transactionType);
         List<CategoryDto> categoriesDto = CategoryMapper.toDtoList(categories);
 
         return ResponseEntity
@@ -74,12 +68,9 @@ public class CategoryController {
     }
 
     @GetMapping("/categories")
-    public ResponseEntity<List<CategoryDto>> getUserCategories(JwtAuthenticationToken jwtAuthToken) {
-
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-
+    public ResponseEntity<List<CategoryDto>> getUserCategories() {
         List<CategoryDto> categoryDtos = CategoryMapper.toDtoList(
-                categoryService.findUserCategories(keycloakSub));
+                categoryQueryService.findUserCategories());
 
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -87,12 +78,8 @@ public class CategoryController {
     }
 
     @GetMapping("/categories/{categoryId}/transactions")
-    public ResponseEntity<List<TransactionDto>> getCategoryTransactions(
-            JwtAuthenticationToken jwtAuthToken,
-            @PathVariable Long categoryId) {
-
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-        List<Transaction> transactions = transactionService.findByCategory(keycloakSub, categoryId);
+    public ResponseEntity<List<TransactionDto>> getCategoryTransactions(@PathVariable Long categoryId) {
+        List<Transaction> transactions = transactionQueryService.findByCategory(categoryId);
 
         List<TransactionDto> dtos = transactions.stream()
                 .map(transaction -> TransactionMapper.mapToTransactionDto(transaction, new TransactionDto()))
@@ -102,12 +89,8 @@ public class CategoryController {
     }
 
     @DeleteMapping("/categories/{categoryId}")
-    public ResponseEntity<ResponseDto> deleteCategory(JwtAuthenticationToken jwtAuthToken,
-                                                      @PathVariable Long categoryId) {
-
-        String keycloakSub = jwtAuthToken.getToken().getSubject();
-
-        categoryService.deleteCategory(keycloakSub, categoryId);
+    public ResponseEntity<ResponseDto> deleteCategory(@PathVariable Long categoryId) {
+        categoryCommandService.deleteCategory(categoryId);
 
         return ResponseEntity
                 .status(HttpStatus.OK)

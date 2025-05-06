@@ -8,7 +8,6 @@ import com.mybudget.transactions.entity.enums.TransactionType;
 import com.mybudget.transactions.exception.ResourceNotFoundException;
 import com.mybudget.transactions.repository.CategoryRepository;
 import com.mybudget.transactions.repository.TransactionRepository;
-import com.mybudget.transactions.service.implementation.TransactionServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -103,7 +102,7 @@ class TransactionServiceTest {
         transaction.setId(id);
         transaction.setKeycloakSub(sub);
 
-        when(transactionRepository.findTransactionByKeycloakSubAndId(sub, id)).thenReturn(Optional.of(transaction));
+        when(transactionRepository.findByKeycloakSubAndId(sub, id)).thenReturn(Optional.of(transaction));
 
         // when
         Optional<Transaction> result = transactionService.findByKeycloakSubAndId(sub, id);
@@ -117,7 +116,7 @@ class TransactionServiceTest {
     void shouldThrowResourceNotFoundWhenTransactionNotFound() {
         // given
         Long id = 999L;
-        when(transactionRepository.findTransactionByKeycloakSubAndId(sub, id)).thenReturn(Optional.empty());
+        when(transactionRepository.findByKeycloakSubAndId(sub, id)).thenReturn(Optional.empty());
 
         // when & then
         assertThrows(ResourceNotFoundException.class, () -> transactionService.findByKeycloakSubAndId(sub, id));
@@ -141,7 +140,7 @@ class TransactionServiceTest {
     void shouldFindAllTransactionsBySub() {
         // given
         List<Transaction> list = List.of(new Transaction(), new Transaction());
-        when(transactionRepository.findTransactionsByKeycloakSub(sub)).thenReturn(list);
+        when(transactionRepository.findAllByKeycloakSub(sub)).thenReturn(list);
 
         // when
         List<Transaction> result = transactionService.findTransactions(sub);
@@ -158,7 +157,7 @@ class TransactionServiceTest {
         transaction.setId(id);
         transaction.setKeycloakSub(sub);
 
-        when(transactionRepository.findTransactionByKeycloakSubAndId(sub, id)).thenReturn(Optional.of(transaction));
+        when(transactionRepository.findByKeycloakSubAndId(sub, id)).thenReturn(Optional.of(transaction));
 
         // when
         boolean deleted = transactionService.deleteTransaction(sub, id);
@@ -172,7 +171,7 @@ class TransactionServiceTest {
     void shouldThrowWhenDeletingNonExistentTransaction() {
         // given
         Long id = 42L;
-        when(transactionRepository.findTransactionByKeycloakSubAndId(sub, id)).thenReturn(Optional.empty());
+        when(transactionRepository.findByKeycloakSubAndId(sub, id)).thenReturn(Optional.empty());
 
         // when & then
         assertThrows(ResourceNotFoundException.class, () -> transactionService.deleteTransaction(sub, id));

@@ -6,13 +6,9 @@ import java.math.BigDecimal;
 
 public interface UserService {
     User findUserByKeycloakSub(String keycloakSub);
-
     void createUser(String keycloakSub, String email, String username);
-
-    void setBalance(String keycloakSub, BigDecimal balance);
-
+    void setBalance(BigDecimal balance);
     void deleteUserCategoriesAndTransactions(String username);
-
     BigDecimal updateBalance(String keycloakSub, BigDecimal amount, String transactionType);
 
 }
