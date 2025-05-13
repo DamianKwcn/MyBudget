@@ -1,8 +1,8 @@
 package com.mybudget.transactions.listener;
 
-import com.mybudget.common.event.TransactionConfirmEvent;
-import com.mybudget.common.event.TransactionRollbackEvent;
-import com.mybudget.common.event.CategoriesAfterUserDeleteEvent;
+import com.mybudget.common.event.transaction.TransactionConfirmEvent;
+import com.mybudget.common.event.transaction.TransactionRollbackEvent;
+import com.mybudget.common.event.category.CategoriesAfterUserDeleteEvent;
 import com.mybudget.transactions.listener.Event.EventHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;

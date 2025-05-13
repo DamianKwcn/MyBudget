@@ -1,7 +1,7 @@
 package com.mybudget.transactions.service;
 
 import com.mybudget.common.enums.TransactionStatus;
-import com.mybudget.common.event.TransactionSagaStartEvent;
+import com.mybudget.common.event.transaction.TransactionSagaStartEvent;
 import com.mybudget.transactions.entity.Category;
 import com.mybudget.transactions.entity.Transaction;
 import com.mybudget.transactions.entity.enums.TransactionType;

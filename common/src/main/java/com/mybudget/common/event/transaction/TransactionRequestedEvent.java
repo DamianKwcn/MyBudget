@@ -1,4 +1,4 @@
-package com.mybudget.common.event;
+package com.mybudget.common.event.transaction;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,8 +9,9 @@ import java.math.BigDecimal;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class TransactionConfirmEvent {
-    private Long transactionId;
+public class TransactionRequestedEvent {
     private String keycloakSub;
-    private BigDecimal balanceAfter;
+    private BigDecimal amount;
+    private Long categoryId;
+    private String description;
 }
