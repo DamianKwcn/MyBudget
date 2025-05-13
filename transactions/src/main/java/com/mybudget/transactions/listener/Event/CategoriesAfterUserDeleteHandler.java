@@ -1,6 +1,6 @@
 package com.mybudget.transactions.listener.Event;
 
-import com.mybudget.common.event.CategoriesAfterUserDeleteEvent;
+import com.mybudget.common.event.category.CategoriesAfterUserDeleteEvent;
 import com.mybudget.transactions.service.CategoryCommandService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

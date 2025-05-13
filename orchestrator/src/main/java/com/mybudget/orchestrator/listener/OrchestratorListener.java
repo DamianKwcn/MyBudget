@@ -1,7 +1,12 @@
 package com.mybudget.orchestrator.listener;
 
 import com.mybudget.common.enums.TransactionStatus;
-import com.mybudget.common.event.*;
+import com.mybudget.common.event.BalanceUpdateRequestedEvent;
+import com.mybudget.common.event.BalanceUpdateResultEvent;
+import com.mybudget.common.event.category.CategoriesAfterUserDeleteEvent;
+import com.mybudget.common.event.category.CategoryDefaultCreateEvent;
+import com.mybudget.common.event.transaction.*;
+import com.mybudget.common.event.user.UserCreatedEvent;
 import com.mybudget.common.kafka.Topics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,11 +22,10 @@ import static com.mybudget.common.kafka.Topics.*;
 @Component
 @RequiredArgsConstructor
 public class OrchestratorListener {
-
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private static final Logger logger = LoggerFactory.getLogger(OrchestratorListener.class);
 
-    @KafkaListener(topics = STREAMING_TRANSACTIONS_SAGA_STARTED_V1, groupId="orchestrator-group")
+    @KafkaListener(topics = STREAMING_TRANSACTIONS_CREATION_STARTED_V1, groupId="orchestrator-group")
     public void onTransactionSagaStart(TransactionSagaStartEvent event) {
         logger.info("Orchestrator: Received TransactionSagaStartEvent transactionID={}, sub={}, amount={}, type={}",
                 event.getTransactionId(), event.getKeycloakSub(), event.getAmount(), event.getTransactionType());
@@ -32,12 +36,12 @@ public class OrchestratorListener {
                 event.getAmount(),
                 event.getTransactionType()
         );
+
         kafkaTemplate.send(QUEUING_ACCOUNTS_BALANCE_UPDATE_REQUEST_V1, confirmEvent);
 
         logger.info("Orchestrator: Sent BalanceUpdateRequestedEvent to Accounts sub={},transactionId={} amount={}, type={}",
                 confirmEvent.getKeycloakSub(),confirmEvent.getTransactionId(), confirmEvent.getAmount(), confirmEvent.getTransactionType());
     }
-
 
     @KafkaListener(topics = STREAMING_ACCOUNTS_BALANCE_UPDATE_RESULT_V1, groupId = "orchestrator-group")
     public void onBalanceUpdateResult(BalanceUpdateResultEvent event) {
@@ -82,5 +86,24 @@ public class OrchestratorListener {
         logger.info("Orchestrator: UserDelete event send with username={}", event.getUsername());
         kafkaTemplate.send(QUEUING_CATEGORIES_DELETE_V1, new CategoriesAfterUserDeleteEvent(event.getUsername()));
     }
+
+    @KafkaListener(topics = STREAMING_TRANSACTIONS_REMOVAL_STARTED_V1, groupId = "orchestrator-group")
+    public void onTransactionRemovalStarted(TransactionRemovalStartedEvent event) {
+        logger.info("Orchestrator: Received TransactionRemovalStartedEvent id={}, sub={}, amount={}, type={}",
+                event.getTransactionId(), event.getKeycloakSub(), event.getAmount(), event.getTransactionType());
+
+        BalanceUpdateRequestedEvent confirmEvent = new BalanceUpdateRequestedEvent(
+                event.getKeycloakSub(),
+                event.getTransactionId(),
+                event.getAmount().negate(),
+                event.getTransactionType()
+        );
+
+        kafkaTemplate.send(QUEUING_ACCOUNTS_BALANCE_UPDATE_REQUEST_V1, confirmEvent);
+
+        logger.info("Orchestrator: Sent BalanceUpdateRequestedEvent to Accounts sub={},transactionId={} amount={}, type={}",
+                confirmEvent.getKeycloakSub(),confirmEvent.getTransactionId(), confirmEvent.getAmount(), confirmEvent.getTransactionType());
+    }
+
 
 }
