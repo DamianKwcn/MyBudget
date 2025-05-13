@@ -1,4 +1,4 @@
-package com.mybudget.common.event;
+package com.mybudget.common.event.category;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

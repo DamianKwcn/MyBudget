@@ -1,4 +1,4 @@
-package com.mybudget.common.event;
+package com.mybudget.common.event.transaction;
 
 import com.mybudget.common.enums.TransactionStatus;
 import lombok.AllArgsConstructor;

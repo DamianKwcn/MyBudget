@@ -36,16 +36,13 @@ public class BalanceUpdateRequestedHandler implements EventHandler<BalanceUpdate
                     event.getTransactionType()
             );
             status = TransactionStatus.SUCCESS;
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException e) {
             status = TransactionStatus.FAILED;
-            logger.warn("Accounts: Transaction failed for sub={} due to insufficient funds or unknown transaction type.",
-                    event.getKeycloakSub()
-            );
+            logger.warn("Accounts: Balance update failed for sub={}.", event.getKeycloakSub());
         } catch (Exception e) {
             status = TransactionStatus.FAILED;
             logger.error("Accounts: Error while processing balance update request={}", e.getMessage(), e);
         }
-
         publisher.publish(event, status, updatedBalance);
     }
 }
