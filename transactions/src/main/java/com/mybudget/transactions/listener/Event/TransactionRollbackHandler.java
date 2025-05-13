@@ -1,6 +1,6 @@
 package com.mybudget.transactions.listener.Event;
 
-import com.mybudget.common.event.TransactionRollbackEvent;
+import com.mybudget.common.event.transaction.TransactionRollbackEvent;
 import com.mybudget.common.enums.TransactionStatus;
 import com.mybudget.transactions.entity.Transaction;
 import com.mybudget.transactions.exception.InsufficientFundsException;

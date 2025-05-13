@@ -1,6 +1,6 @@
 package com.mybudget.transactions.listener;
 
-import com.mybudget.common.event.CategoryDefaultCreateEvent;
+import com.mybudget.common.event.category.CategoryDefaultCreateEvent;
 import com.mybudget.transactions.listener.Event.EventHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
