@@ -87,11 +87,6 @@
 			<artifactId>kafka-streams</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.mybudget</groupId>
-			<artifactId>mybudget-common</artifactId>
-			<version>1.0.0</version>
-		</dependency>
-		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-oauth2-resource-server</artifactId>
 		</dependency>
