@@ -67,7 +67,7 @@ public class OrchestratorListener {
         }
     }
 
-    @KafkaListener(topics = Topics.STREAMING_USERS_CREATED_V1, groupId = "orchestrator-group")
+    @KafkaListener(topics = STREAMING_USERS_CREATED_V1, groupId = "orchestrator-group")
     public void onUserCreated(UserCreatedEvent event) {
         logger.info("Orchestrator: received UserCreatedEvent sub={}, username={}",
                 event.getKeycloakSub(), event.getUsername());
@@ -75,13 +75,13 @@ public class OrchestratorListener {
         CategoryDefaultCreateEvent confirmEvent =
                 new CategoryDefaultCreateEvent(event.getKeycloakSub(), event.getUsername());
 
-        kafkaTemplate.send(Topics.QUEUING_CATEGORIES_CREATE_DEFAULT_V1, confirmEvent);
+        kafkaTemplate.send(QUEUING_CATEGORIES_CREATE_DEFAULT_V1, confirmEvent);
 
         logger.info("Orchestrator: sent CategoryDefaultCreateEvent for sub={}, username={}",
                 event.getKeycloakSub(), event.getUsername());
     }
 
-    @KafkaListener(topics= QUEUING_USERS_DELETE_V1, groupId="orchestrator-group")
+    @KafkaListener(topics = QUEUING_USERS_DELETE_V1, groupId="orchestrator-group")
     public void onUserDelete(TransactionsAfterUserDeleteEvent event) {
         logger.info("Orchestrator: UserDelete event send with username={}", event.getUsername());
         kafkaTemplate.send(QUEUING_CATEGORIES_DELETE_V1, new CategoriesAfterUserDeleteEvent(event.getUsername()));

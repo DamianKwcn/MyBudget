@@ -26,9 +26,7 @@ import java.math.BigDecimal;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @TestPropertySource(properties = {
@@ -55,46 +53,40 @@ class UserControllerTest {
         @Test
         void shouldReturnUserProfile() throws Exception {
             // GIVEN
-            String keycloakSub = "test-subject";
+            String sub = "test-subject";
             User user = new User();
             user.setId(1L);
-            user.setKeycloakSub(keycloakSub);
+            user.setKeycloakSub(sub);
             user.setUsername("test-user");
             user.setEmail("test@example.com");
             user.setBalance(BigDecimal.TEN);
-
-            BDDMockito.given(userService.findUserByKeycloakSub(keycloakSub)).willReturn(user);
+            BDDMockito.given(userService.findUserByKeycloakSub(sub)).willReturn(user);
 
             // WHEN
-            var resultActions = mockMvc.perform(get("/api/users")
-                    .with(SecurityMockMvcRequestPostProcessors.jwt()
-                            .jwt(jwt -> jwt.claim("sub", keycloakSub))));
+            var result = mockMvc.perform(get("/api/users")
+                    .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.claim("sub", sub))));
 
             // THEN
-            resultActions
-                    .andExpect(status().isOk())
+            result.andExpect(status().isOk())
                     .andExpect(jsonPath("$.username").value("test-user"))
                     .andExpect(jsonPath("$.email").value("test@example.com"))
                     .andExpect(jsonPath("$.balance").value(10));
-
-            verify(userService, times(1)).findUserByKeycloakSub(keycloakSub);
+            verify(userService, times(1)).findUserByKeycloakSub(sub);
         }
 
         @Test
         void shouldThrowResourceNotFoundException() throws Exception {
             // GIVEN
-            String subject = "unknown-subject";
-            BDDMockito.given(userService.findUserByKeycloakSub(subject))
-                    .willThrow(new ResourceNotFoundException("User", "keycloakSub", subject));
+            String sub = "unknown-subject";
+            BDDMockito.given(userService.findUserByKeycloakSub(sub))
+                    .willThrow(new ResourceNotFoundException("User", "keycloakSub", sub));
 
             // WHEN
-            var resultActions = mockMvc.perform(get("/api/users")
-                    .with(SecurityMockMvcRequestPostProcessors.jwt()
-                            .jwt(jwt -> jwt.claim("sub", subject))));
+            var result = mockMvc.perform(get("/api/users")
+                    .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.claim("sub", sub))));
 
             // THEN
-            resultActions
-                    .andExpect(status().isNotFound())
+            result.andExpect(status().isNotFound())
                     .andExpect(content().string(containsString(
                             "User not found with the given input data keycloakSub : 'unknown-subject'"
                     )));
@@ -108,48 +100,96 @@ class UserControllerTest {
         @Test
         void shouldSetBalance() throws Exception {
             // GIVEN
-            String subject = "test-subject";
-            BalanceDto balanceDto = new BalanceDto();
-            balanceDto.setBalance(BigDecimal.valueOf(1000.00));
-            doNothing().when(userService).setBalance(eq(subject), eq(balanceDto.getBalance()));
+            BigDecimal newBal = BigDecimal.valueOf(1000.00);
+            BalanceDto dto = new BalanceDto();
+            dto.setBalance(newBal);
+            doNothing().when(userService).setBalance(eq(newBal));
 
             // WHEN
-            var resultActions = mockMvc.perform(post("/api/users/balance")
-                    .with(SecurityMockMvcRequestPostProcessors.jwt()
-                            .jwt(jwt -> jwt.claim("sub", subject)))
+            var result = mockMvc.perform(post("/api/users/balance")
+                    .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.claim("sub", "irrelevant")))
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(balanceDto)));
+                    .content(objectMapper.writeValueAsString(dto)));
 
             // THEN
-            resultActions
-                    .andExpect(status().isOk())
+            result.andExpect(status().isOk())
                     .andExpect(jsonPath("$.statusCode").value(UserConstants.STATUS_200))
                     .andExpect(jsonPath("$.statusMsg").value(UserConstants.MESSAGE_200));
-
-            verify(userService, times(1)).setBalance(subject, BigDecimal.valueOf(1000.00));
+            verify(userService, times(1)).setBalance(newBal);
         }
 
         @Test
         void shouldThrowBalanceAlreadySetException() throws Exception {
             // GIVEN
-            String subject = "test-subject";
-            BalanceDto balanceDto = new BalanceDto();
-            balanceDto.setBalance(BigDecimal.valueOf(1000.00));
-            doThrow(new BalanceAlreadySetException("Balance", "keycloakSub", subject))
-                    .when(userService)
-                    .setBalance(eq(subject), eq(balanceDto.getBalance()));
+            BigDecimal newBal = BigDecimal.valueOf(1000.00);
+            BalanceDto dto = new BalanceDto();
+            dto.setBalance(newBal);
+            doThrow(new BalanceAlreadySetException("Balance", "keycloakSub", "irrelevant"))
+                    .when(userService).setBalance(eq(newBal));
 
             // WHEN
-            var resultActions = mockMvc.perform(post("/api/users/balance")
-                    .with(SecurityMockMvcRequestPostProcessors.jwt()
-                            .jwt(jwt -> jwt.claim("sub", subject)))
+            var result = mockMvc.perform(post("/api/users/balance")
+                    .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.claim("sub", "irrelevant")))
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(balanceDto)));
+                    .content(objectMapper.writeValueAsString(dto)));
 
             // THEN
-            resultActions
-                    .andExpect(status().isNotAcceptable())
+            result.andExpect(status().isNotAcceptable())
                     .andExpect(content().string(containsString("Balance already set for user")));
+        }
+
+        @Test
+        void shouldValidateNegativeBalance() throws Exception {
+            // GIVEN
+            BalanceDto dto = new BalanceDto();
+            dto.setBalance(BigDecimal.valueOf(-1));
+
+            // WHEN
+            var result = mockMvc.perform(post("/api/users/balance")
+                    .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt.claim("sub", "irrelevant")))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(dto)));
+
+            // THEN
+            result.andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errorMessage").value(containsString("Balance must be non-negative")));
+        }
+
+        @Test
+        void shouldValidateMissingBalanceField() throws Exception {
+            // GIVEN
+            String body = "{}";
+
+            // WHEN
+            var result = mockMvc.perform(post("/api/users/balance")
+                    .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(t -> t.claim("sub","x")))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(body));
+
+            // THEN
+            result.andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errorMessage")
+                            .value(containsString("Balance cannot be null")));
+        }
+
+        @Test
+        void shouldAcceptZeroBalance() throws Exception {
+            // GIVEN
+            BalanceDto dto = new BalanceDto();
+            dto.setBalance(BigDecimal.ZERO);
+            doNothing().when(userService).setBalance(eq(BigDecimal.ZERO));
+
+            // WHEN
+            var result = mockMvc.perform(post("/api/users/balance")
+                    .with(SecurityMockMvcRequestPostProcessors.jwt().jwt(t -> t.claim("sub","x")))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(dto)));
+
+            // THEN
+            result.andExpect(status().isOk())
+                    .andExpect(jsonPath("$.statusCode").value(UserConstants.STATUS_200))
+                    .andExpect(jsonPath("$.statusMsg").value(UserConstants.MESSAGE_200));
+            verify(userService).setBalance(BigDecimal.ZERO);
         }
     }
 
@@ -157,9 +197,8 @@ class UserControllerTest {
     @WithAnonymousUser
     void shouldReturnUnauthorizedIfNoJwt() throws Exception {
         // WHEN
-        var resultActions = mockMvc.perform(get("/api/users"));
-
+        var result = mockMvc.perform(get("/api/users"));
         // THEN
-        resultActions.andExpect(status().isUnauthorized());
+        result.andExpect(status().isUnauthorized());
     }
 }

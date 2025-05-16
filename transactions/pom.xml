@@ -145,12 +145,6 @@
 			<groupId>org.apache.kafka</groupId>
 			<artifactId>kafka-streams</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>com.mybudget</groupId>
-			<artifactId>mybudget-common</artifactId>
-			<version>1.0.0</version>
-		</dependency>
-
 	</dependencies>
 
 	<dependencyManagement>
