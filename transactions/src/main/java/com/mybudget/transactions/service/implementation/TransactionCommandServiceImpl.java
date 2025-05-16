@@ -73,7 +73,7 @@ public class TransactionCommandServiceImpl implements TransactionCommandService 
                 transaction.getTransactionType().name()
         );
         kafkaTemplate.send(STREAMING_TRANSACTIONS_CREATION_STARTED_V1, event);
-        logger.info("STREAMING_TRANSACTIONS_SAGA_STARTED_V1 published to Orchestrator with sub={}, ID={}, type={}, amount={}",
+        logger.info("STREAMING_TRANSACTIONS_CREATION_STARTED_V1 published to Orchestrator with sub={}, ID={}, type={}, amount={}",
                 keycloakSub, transaction.getId(), transaction.getTransactionType(), transaction.getAmount());
 
         return transaction;

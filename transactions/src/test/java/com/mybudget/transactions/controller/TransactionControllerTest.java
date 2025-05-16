@@ -6,7 +6,11 @@ import com.mybudget.transactions.dto.CreateTransactionDto;
 import com.mybudget.transactions.entity.Category;
 import com.mybudget.transactions.entity.Transaction;
 import com.mybudget.transactions.entity.enums.TransactionType;
+import com.mybudget.transactions.service.TransactionCommandService;
+import com.mybudget.transactions.service.TransactionQueryService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -16,8 +20,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,161 +38,194 @@ class TransactionControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private TransactionService transactionService;
+    private TransactionCommandService transactionCommandService;
+
+    @MockBean
+    private TransactionQueryService transactionQueryService;
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    private final String subject = "test-subject";
+    private final String sub = "test-subject";
 
-    private Category expenseCategory;
-    private Category incomeCategory;
-    private Transaction expenseTransaction;
-    private Transaction incomeTransaction;
-    private CreateTransactionDto createExpenseDto;
+    private Transaction expense;
+    private Transaction income;
 
     @BeforeEach
     void setUp() {
-        expenseCategory = new Category();
-        expenseCategory.setId(3L);
-        expenseCategory.setCategoryName("Car");
-        expenseCategory.setTransactionType(TransactionType.EXPENSE);
+        expense = new Transaction();
+        expense.setId(1L);
+        expense.setKeycloakSub(sub);
+        expense.setAmount(BigDecimal.valueOf(50));
+        expense.setBalanceAfter(BigDecimal.valueOf(950));
+        expense.setTransactionType(TransactionType.EXPENSE);
+        Category cat1 = new Category();
+        cat1.setCategoryName("Car");
+        expense.setCategory(cat1);
+        expense.setDescription("Car repair");
+        expense.setCreatedAt(LocalDateTime.of(2025,5,15,12,0));
 
-        incomeCategory = new Category();
-        incomeCategory.setId(1L);
-        incomeCategory.setCategoryName("Salary");
-        incomeCategory.setTransactionType(TransactionType.INCOME);
-
-        expenseTransaction = new Transaction();
-        expenseTransaction.setId(1L);
-        expenseTransaction.setKeycloakSub(subject);
-        expenseTransaction.setAmount(BigDecimal.valueOf(50.00));
-        expenseTransaction.setTransactionType(TransactionType.EXPENSE);
-        expenseTransaction.setCategory(expenseCategory);
-        expenseTransaction.setDescription("Car repair");
-        expenseTransaction.setBalanceAfter(BigDecimal.valueOf(950.00));
-
-        incomeTransaction = new Transaction();
-        incomeTransaction.setId(2L);
-        incomeTransaction.setKeycloakSub(subject);
-        incomeTransaction.setAmount(BigDecimal.valueOf(100.00));
-        incomeTransaction.setTransactionType(TransactionType.INCOME);
-        incomeTransaction.setCategory(incomeCategory);
-        incomeTransaction.setDescription("Monthly salary");
-        incomeTransaction.setBalanceAfter(BigDecimal.valueOf(1050.00));
-
-        createExpenseDto = CreateTransactionDto.builder()
-                .amount(BigDecimal.valueOf(50.00))
-                .categoryId(3L)
-                .description("Car repair")
-                .transactionType(TransactionType.EXPENSE)
-                .build();
+        income = new Transaction();
+        income.setId(2L);
+        income.setKeycloakSub(sub);
+        income.setAmount(BigDecimal.valueOf(100));
+        income.setBalanceAfter(BigDecimal.valueOf(1050));
+        income.setTransactionType(TransactionType.INCOME);
+        Category cat2 = new Category();
+        cat2.setCategoryName("Salary");
+        income.setCategory(cat2);
+        income.setDescription("Monthly salary");
+        income.setCreatedAt(LocalDateTime.of(2025,5,14,9,30));
     }
 
-    @Test
-    void shouldCreateExpenseTransaction() throws Exception {
-        // Given
-        String username = "test-user";
-        when(transactionService.createTransaction(
-                eq(subject),
-                eq(username),
-                eq(createExpenseDto.getAmount()),
-                eq(createExpenseDto.getCategoryId()),
-                eq(createExpenseDto.getDescription()),
-                eq(createExpenseDto.getTransactionType().name())
-        )).thenReturn(expenseTransaction);
+    @Nested
+    @DisplayName("POST /api/transactions")
+    class CreateTransactionTests {
+        @Test
+        void shouldCreateTransactionAndReturn201() throws Exception {
+            // GIVEN
+            CreateTransactionDto dto = CreateTransactionDto.builder()
+                    .amount(BigDecimal.valueOf(50))
+                    .categoryId(3L)
+                    .description("Test desc")
+                    .build();
 
-        // When & Then
-        mockMvc.perform(post("/api/transactions")
-                        .with(jwt().jwt(builder -> builder
-                                .claim("sub", subject)
-                                .claim("preferred_username", username)))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createExpenseDto)))
-                .andExpect(status().isCreated())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.statusCode").value(TransactionConstants.STATUS_201))
-                .andExpect(jsonPath("$.statusMsg").value(TransactionConstants.MESSAGE_201));
+            // WHEN
+            var result = mockMvc.perform(post("/api/transactions")
+                    .with(jwt().jwt(b -> b.claim("sub", sub)))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(dto)));
 
-        verify(transactionService, times(1)).createTransaction(
-                subject,
-                username,
-                createExpenseDto.getAmount(),
-                createExpenseDto.getCategoryId(),
-                createExpenseDto.getDescription(),
-                createExpenseDto.getTransactionType().name()
-        );
+            // THEN
+            result.andExpect(status().isCreated())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$.statusCode").value(TransactionConstants.STATUS_201))
+                    .andExpect(jsonPath("$.statusMsg").value(TransactionConstants.MESSAGE_201));
+
+            verify(transactionCommandService, times(1))
+                    .createTransaction(eq(dto.getAmount()), eq(dto.getCategoryId()), eq(dto.getDescription()));
+        }
     }
 
-    @Test
-    void shouldReturnExpenses() throws Exception {
-        // Given
-        when(transactionService.findByTransactionType(subject, TransactionType.EXPENSE))
-                .thenReturn(List.of(expenseTransaction));
+    @Nested
+    @DisplayName("GET /api/transactions")
+    class GetTransactionsTests {
+        @Test
+        void shouldReturnAllTransactions() throws Exception {
+            // GIVEN
+            when(transactionQueryService.findTransactions())
+                    .thenReturn(List.of(expense, income));
 
-        // When & Then
-        mockMvc.perform(get("/api/expenses")
-                        .with(jwt().jwt(builder -> builder.claim("sub", subject))))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].amount").value(50.00))
-                .andExpect(jsonPath("$[0].balanceAfter").value(950.00))
-                .andExpect(jsonPath("$[0].transactionType").value("EXPENSE"))
-                .andExpect(jsonPath("$[0].description").value("Car repair"))
-                .andExpect(jsonPath("$[0].categoryName").value("Car"));
+            // WHEN
+            var result = mockMvc.perform(get("/api/transactions")
+                    .with(jwt().jwt(b -> b.claim("sub", sub))));
+
+            // THEN
+            result.andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$", hasSize(2)))
+                    .andExpect(jsonPath("$[0].amount").value(50.0))
+                    .andExpect(jsonPath("$[0].balanceAfter").value(950.0))
+                    .andExpect(jsonPath("$[0].transactionType").value("EXPENSE"))
+                    .andExpect(jsonPath("$[0].description").value("Car repair"))
+                    .andExpect(jsonPath("$[0].categoryName").value("Car"));
+
+            verify(transactionQueryService, times(1)).findTransactions();
+        }
     }
 
-    @Test
-    void shouldReturnIncomes() throws Exception {
-        // Given
-        when(transactionService.findByTransactionType(subject, TransactionType.INCOME))
-                .thenReturn(List.of(incomeTransaction));
+    @Nested
+    @DisplayName("GET /api/transactions/{id}")
+    class GetTransactionByIdTests {
+        @Test
+        void shouldReturnTransactionDto() throws Exception {
+            // GIVEN
+            when(transactionQueryService.findByKeycloakSubAndId(1L))
+                    .thenReturn(expense);
 
-        // When & Then
-        mockMvc.perform(get("/api/incomes")
-                        .with(jwt().jwt(builder -> builder.claim("sub", subject))))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].amount").value(100.00))
-                .andExpect(jsonPath("$[0].balanceAfter").value(1050.00))
-                .andExpect(jsonPath("$[0].transactionType").value("INCOME"))
-                .andExpect(jsonPath("$[0].description").value("Monthly salary"))
-                .andExpect(jsonPath("$[0].categoryName").value("Salary"));
+            // WHEN
+            var result = mockMvc.perform(get("/api/transactions/1")
+                    .with(jwt().jwt(b -> b.claim("sub", sub))));
+
+            // THEN
+            result.andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$.amount").value(50.0))
+                    .andExpect(jsonPath("$.balanceAfter").value(950.0))
+                    .andExpect(jsonPath("$.transactionType").value("EXPENSE"))
+                    .andExpect(jsonPath("$.description").value("Car repair"))
+                    .andExpect(jsonPath("$.categoryName").value("Car"));
+
+            verify(transactionQueryService, times(1)).findByKeycloakSubAndId(1L);
+        }
     }
 
-    @Test
-    void shouldReturnTransactions() throws Exception {
-        // Given
-        when(transactionService.findTransactions(subject))
-                .thenReturn(List.of(expenseTransaction, incomeTransaction));
+    @Nested
+    @DisplayName("DELETE /api/transactions/{id}")
+    class DeleteTransactionTests {
+        @Test
+        void shouldDeleteTransactionAndReturn200() throws Exception {
+            // WHEN
+            var result = mockMvc.perform(delete("/api/transactions/1")
+                    .with(jwt().jwt(b -> b.claim("sub", sub))));
 
-        // When & Then
-        mockMvc.perform(get("/api/transactions")
-                        .with(jwt().jwt(builder -> builder.claim("sub", subject))))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(2)));
+            // THEN
+            result.andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$.statusCode").value(TransactionConstants.STATUS_200))
+                    .andExpect(jsonPath("$.statusMsg").value(TransactionConstants.MESSAGE_200));
+
+            verify(transactionCommandService, times(1)).deleteTransaction(1L);
+        }
     }
 
-    @Test
-    void shouldReturnTransactionById() throws Exception {
-        // Given
-        Long transactionId = 1L;
-        when(transactionService.findByKeycloakSubAndId(subject, transactionId))
-                .thenReturn(Optional.of(expenseTransaction));
+    @Nested
+    @DisplayName("GET /api/expenses")
+    class GetExpensesTests {
+        @Test
+        void shouldReturnExpensesList() throws Exception {
+            // GIVEN
+            when(transactionQueryService.findByTransactionType(TransactionType.EXPENSE))
+                    .thenReturn(List.of(expense));
 
-        // When & Then
-        mockMvc.perform(get("/api/transactions/{id}", transactionId)
-                        .with(jwt().jwt(builder -> builder.claim("sub", subject))))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.amount").value(50.00))
-                .andExpect(jsonPath("$.balanceAfter").value(950.00))
-                .andExpect(jsonPath("$.transactionType").value("EXPENSE"))
-                .andExpect(jsonPath("$.description").value("Car repair"))
-                .andExpect(jsonPath("$.categoryName").value("Car"));
+            // WHEN
+            var result = mockMvc.perform(get("/api/expenses")
+                    .with(jwt().jwt(b -> b.claim("sub", sub))));
+
+            // THEN
+            result.andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$", hasSize(1)))
+                    .andExpect(jsonPath("$[0].amount").value(50.0))
+                    .andExpect(jsonPath("$[0].transactionType").value("EXPENSE"));
+
+            verify(transactionQueryService, times(1))
+                    .findByTransactionType(TransactionType.EXPENSE);
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/incomes")
+    class GetIncomesTests {
+        @Test
+        void shouldReturnIncomesList() throws Exception {
+            // GIVEN
+            when(transactionQueryService.findByTransactionType(TransactionType.INCOME))
+                    .thenReturn(List.of(income));
+
+            // WHEN
+            var result = mockMvc.perform(get("/api/incomes")
+                    .with(jwt().jwt(b -> b.claim("sub", sub))));
+
+            // THEN
+            result.andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$", hasSize(1)))
+                    .andExpect(jsonPath("$[0].amount").value(100.0))
+                    .andExpect(jsonPath("$[0].transactionType").value("INCOME"));
+
+            verify(transactionQueryService, times(1))
+                    .findByTransactionType(TransactionType.INCOME);
+        }
     }
 }
-

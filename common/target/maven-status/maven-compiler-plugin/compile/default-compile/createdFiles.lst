@@ -1,0 +1,16 @@
+com\mybudget\common\event\category\CategoriesAfterUserDeleteEvent.class
+com\mybudget\common\event\transaction\TransactionRequestedEvent.class
+com\mybudget\common\Main.class
+com\mybudget\common\enums\TransactionType.class
+com\mybudget\common\event\transaction\TransactionRollbackEvent.class
+com\mybudget\common\event\transaction\TransactionsAfterUserDeleteEvent.class
+com\mybudget\common\event\transaction\TransactionRemovalStartedEvent.class
+com\mybudget\common\event\BalanceUpdateRequestedEvent.class
+com\mybudget\common\event\category\CategoryDefaultCreateEvent.class
+com\mybudget\common\event\transaction\TransactionConfirmEvent.class
+com\mybudget\common\event\BalanceUpdateResultEvent.class
+com\mybudget\common\event\user\UserCreatedEvent.class
+com\mybudget\common\event\transaction\TransactionCreatedEvent.class
+com\mybudget\common\kafka\Topics.class
+com\mybudget\common\enums\TransactionStatus.class
+com\mybudget\common\event\transaction\TransactionSagaStartEvent.class
