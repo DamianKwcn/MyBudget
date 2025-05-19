@@ -8,6 +8,7 @@ import com.mybudget.accounts.entity.User;
 import com.mybudget.accounts.mapper.UserMapper;
 import com.mybudget.accounts.service.UserService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.retry.annotation.Retry;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -42,7 +43,7 @@ public class UserController {
                 .body(userDto);
     }
 
-
+    @RateLimiter(name = "setUserBalance")
     @PostMapping("/users/balance")
     public ResponseEntity<ResponseDto> setUserBalance(@Valid @RequestBody BalanceDto balanceDto) {
         userService.setBalance(balanceDto.getBalance());

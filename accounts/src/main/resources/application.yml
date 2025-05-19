@@ -112,7 +112,7 @@ resilience4j.ratelimiter:
     default:
       timeoutDuration: 1000
       limitRefreshPeriod: 5000
-      limitForPeriod: 10
+      limitForPeriod: 15
 
 info:
   app:

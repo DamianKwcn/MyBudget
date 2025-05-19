@@ -64,6 +64,7 @@ public class TransactionController {
         return ResponseEntity.ok(transactionDto);
     }
 
+    @RateLimiter(name = "deleteTransaction")
     @DeleteMapping("/transactions/{id}")
     public ResponseEntity<ResponseDto> deleteTransaction(@PathVariable Long id) {
         transactionCommandService.deleteTransaction(id);
@@ -91,4 +92,5 @@ public class TransactionController {
                 .toList();
         return ResponseEntity.ok(dtos);
     }
+
 }

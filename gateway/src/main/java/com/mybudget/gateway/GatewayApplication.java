@@ -38,8 +38,7 @@ public class GatewayApplication {
 						.path("/mybudget/accounts/**")
 						.filters(f -> f.rewritePath("/mybudget/accounts/(?<segment>.*)", "/${segment}")
 								.addResponseHeader("X-Response-Time", LocalDateTime.now().toString())
-								.requestRateLimiter(config -> config.setRateLimiter(redisRateLimiter())
-										.setKeyResolver(userKeyResolver()))
+								.requestRateLimiter(config -> config.setKeyResolver(userKeyResolver()))
 								.circuitBreaker(config -> config.setName("accountsCircuitBreaker")
 										.setFallbackUri("forward:/contactSupport")))
 						.uri("lb://ACCOUNTS"))
@@ -47,8 +46,7 @@ public class GatewayApplication {
 						.path("/mybudget/transactions/**")
 						.filters(f -> f.rewritePath("/mybudget/transactions/(?<segment>.*)", "/${segment}")
 								.addResponseHeader("X-Response-Time", LocalDateTime.now().toString())
-								.requestRateLimiter(config -> config.setRateLimiter(redisRateLimiter())
-										.setKeyResolver(userKeyResolver()))
+								.requestRateLimiter(config -> config.setKeyResolver(userKeyResolver()))
 								.circuitBreaker(config -> config.setName("transactionsCircuitBreaker")
 										.setFallbackUri("forward:/contactSupport")))
 						.uri("lb://TRANSACTIONS"))
@@ -57,8 +55,7 @@ public class GatewayApplication {
 						.filters(f -> f.rewritePath("/mybudget/api/orchestrator/(?<segment>.*)",
 										"/api/orchestrator/${segment}")
 								.addResponseHeader("X-Response-Time", LocalDateTime.now().toString())
-								.requestRateLimiter(config -> config.setRateLimiter(redisRateLimiter())
-										.setKeyResolver(userKeyResolver()))
+								.requestRateLimiter(config -> config.setKeyResolver(userKeyResolver()))
 								.circuitBreaker(config -> config.setName("orchestratorCircuitBreaker")
 										.setFallbackUri("forward:/contactSupport")))
 						.uri("lb://ORCHESTRATOR"))
@@ -76,11 +73,11 @@ public class GatewayApplication {
 
 	@Bean
 	public RedisRateLimiter redisRateLimiter() {
-		return new RedisRateLimiter(10, 20, 1);
+		return new RedisRateLimiter(5,15 , 1);
 	}
 
 	@Bean
-	KeyResolver userKeyResolver() {
+	public KeyResolver userKeyResolver() {
 		return exchange ->
 				ReactiveSecurityContextHolder.getContext()
 						.flatMap(context -> {
@@ -91,9 +88,18 @@ public class GatewayApplication {
 									return Mono.just(jwt.getClaim("preferred_username"));
 								}
 							}
-							return Mono.just("anonymous");
+							String ip = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+							if (ip == null) {
+								if (exchange.getRequest().getRemoteAddress() != null) {
+									ip = exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
+								} else {
+									ip = "unknown";
+								}
+							}
+							return Mono.just(ip);
 						})
-						.defaultIfEmpty("anonymous")
-						.doOnNext(key -> logger.info("Resolved key: {}", key));
+						.defaultIfEmpty("unknown")
+						.doOnNext(key -> logger.info("Resolved rate limit key: {}", key));
 	}
+
 }
