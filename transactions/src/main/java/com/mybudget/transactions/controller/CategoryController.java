@@ -46,6 +46,7 @@ public class CategoryController {
                         CategoryConstants.MESSAGE_201));
     }
 
+    @RateLimiter(name = "getCategory")
     @GetMapping("/categories/{categoryId}")
     public ResponseEntity<CategoryDto> getCategory(@PathVariable Long categoryId) {
 
@@ -57,6 +58,7 @@ public class CategoryController {
                 .body(categoryDto);
     }
 
+    @RateLimiter(name = "getCategoriesByType")
     @GetMapping("/categories/type/{transactionType}")
     public ResponseEntity<List<CategoryDto>> getCategoriesByType(@PathVariable("transactionType") TransactionType transactionType) {
         List<Category> categories = categoryQueryService.findCategoriesByType(transactionType);
@@ -67,6 +69,7 @@ public class CategoryController {
                 .body(categoriesDto);
     }
 
+    @RateLimiter(name = "getUserCategories")
     @GetMapping("/categories")
     public ResponseEntity<List<CategoryDto>> getUserCategories() {
         List<CategoryDto> categoryDtos = CategoryMapper.toDtoList(
@@ -77,6 +80,7 @@ public class CategoryController {
                 .body(categoryDtos);
     }
 
+    @RateLimiter(name = "getCategoryTransactions")
     @GetMapping("/categories/{categoryId}/transactions")
     public ResponseEntity<List<TransactionDto>> getCategoryTransactions(@PathVariable Long categoryId) {
         List<Transaction> transactions = transactionQueryService.findByCategory(categoryId);
@@ -88,6 +92,7 @@ public class CategoryController {
         return ResponseEntity.ok(dtos);
     }
 
+    @RateLimiter(name = "deleteCategory")
     @DeleteMapping("/categories/{categoryId}")
     public ResponseEntity<ResponseDto> deleteCategory(@PathVariable Long categoryId) {
         categoryCommandService.deleteCategory(categoryId);

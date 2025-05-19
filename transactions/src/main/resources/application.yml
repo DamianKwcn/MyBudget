@@ -2,7 +2,6 @@ server:
   port: ${SERVER_PORT}
 
 spring:
-
   kafka:
     bootstrap-servers: "localhost:9092,localhost:9093,localhost:9094"
     consumer:
@@ -108,7 +107,7 @@ resilience4j.ratelimiter:
     default:
       timeoutDuration: 1000
       limitRefreshPeriod: 5000
-      limitForPeriod: 10
+      limitForPeriod: 15
 
 info:
   app:
