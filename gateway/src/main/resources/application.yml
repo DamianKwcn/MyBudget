@@ -48,12 +48,12 @@ info:
 
 logging:
   level:
-    com:
-      mybudget:
-        gatewayserver: DEBUG
-      netflix.discovery: DEBUG
+    com.mybudget.gatewayserver: DEBUG
+    com.netflix.discovery: DEBUG
+    com.mybudget.gateway.filter: DEBUG
+
   pattern:
-    level: "%5p [${spring.application.name},%X{trace_id},%X{span_id}]"
+    level: "%5p [${spring.application.name},%X{cid},%X{trace_id},%X{span_id}]"
 
 resilience4j.circuitbreaker:
   configs:
