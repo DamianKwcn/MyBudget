@@ -84,11 +84,12 @@ eureka:
       defaultZone: ${EUREKA_DEFAULT_ZONE}
 
 logging:
+  pattern:
+    level: "%5p [${spring.application.name},%X{cid}]"
+
   level:
-    com:
-      mybudget:
-        transactions: DEBUG
-      netflix.discovery: DEBUG
+    com.mybudget.transactions: DEBUG
+    com.netflix.discovery: DEBUG
 
 keycloak:
   realm: ${KEYCLOAK_REALM}
