@@ -17,16 +17,20 @@ import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api")
+@RequestMapping(
+        path = "/api",
+        produces = {MediaType.APPLICATION_JSON_VALUE})
+@Validated
 public class CategoryController {
-
     private final CategoryCommandService categoryCommandService;
     private final CategoryQueryService categoryQueryService;
     private final TransactionQueryService transactionQueryService;
