@@ -12,6 +12,65 @@ spring:
         locator:
           enabled: false
           lowerCaseServiceId: true
+
+      routes:
+        - id: accounts
+          uri: lb://ACCOUNTS
+          predicates:
+            - Path=/mybudget/accounts/**
+          filters:
+            - RewritePath=/mybudget/accounts/(?<s>.*), /${s}
+            - name: CircuitBreaker
+              args:
+                name: accountsCircuitBreaker
+                fallbackUri: forward:/contactSupport
+                series:
+                  - SERVER_ERROR
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 5
+                redis-rate-limiter.burstCapacity: 15
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+
+        - id: transactions
+          uri: lb://TRANSACTIONS
+          predicates:
+            - Path=/mybudget/transactions/**
+          filters:
+            - RewritePath=/mybudget/transactions/(?<s>.*), /${s}
+            - name: CircuitBreaker
+              args:
+                name: transactionsCircuitBreaker
+                fallbackUri: forward:/contactSupport
+                series:
+                  - SERVER_ERROR
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 5
+                redis-rate-limiter.burstCapacity: 15
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+
+        - id: orchestrator
+          uri: lb://ORCHESTRATOR
+          predicates:
+            - Path=/mybudget/api/orchestrator/**
+          filters:
+            - RewritePath=/mybudget/api/orchestrator/(?<s>.*), /api/orchestrator/${s}
+            - name: CircuitBreaker
+              args:
+                name: orchestratorCircuitBreaker
+                fallbackUri: forward:/contactSupport
+                series:
+                  - SERVER_ERROR
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 5
+                redis-rate-limiter.burstCapacity: 15
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+
   data:
     redis:
       connect-timeout: 2s
@@ -30,30 +89,15 @@ management:
     web:
       exposure:
         include: "*"
-  endpoint:
-    gateway:
-      enabled: true
-    circuitbreakers:
-      enabled: true
-
   info:
     env:
       enabled: true
-
-info:
-  app:
-    name: "gatewayserver"
-    description: "MyBudget Gateway Server Application"
-    version: "0.0.1"
 
 logging:
   level:
     com.mybudget.gatewayserver: DEBUG
     com.netflix.discovery: DEBUG
     com.mybudget.gateway.filter: DEBUG
-
-  pattern:
-    level: "%5p [${spring.application.name},%X{cid},%X{trace_id},%X{span_id}]"
 
 resilience4j.circuitbreaker:
   configs:
@@ -62,4 +106,12 @@ resilience4j.circuitbreaker:
       slidingWindowSize: 10
       permittedNumberOfCallsInHalfOpenState: 2
       failureRateThreshold: 50
-      waitDurationInOpenState: 10000
+      slowCallDurationThreshold: 3s
+      slowCallRateThreshold: 30
+      waitDurationInOpenState: 15000
+
+info:
+  app:
+    name: "gatewayserver"
+    description: "MyBudget Gateway Server Application"
+    version: "0.0.1"

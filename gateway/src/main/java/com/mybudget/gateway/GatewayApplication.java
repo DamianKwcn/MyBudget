@@ -1,26 +1,15 @@
 package com.mybudget.gateway;
 
-import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
-import io.github.resilience4j.timelimiter.TimeLimiterConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.circuitbreaker.resilience4j.ReactiveResilience4JCircuitBreakerFactory;
-import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JConfigBuilder;
-import org.springframework.cloud.client.circuitbreaker.Customizer;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
-import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
-import org.springframework.cloud.gateway.route.RouteLocator;
-import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import reactor.core.publisher.Mono;
-
-import java.time.Duration;
-import java.time.LocalDateTime;
 
 @SpringBootApplication
 public class GatewayApplication {
@@ -32,51 +21,6 @@ public class GatewayApplication {
 	private final Logger logger = LoggerFactory.getLogger(GatewayApplication.class);
 
 	@Bean
-	public RouteLocator gatewayRouteConfig(RouteLocatorBuilder routeLocatorBuilder) {
-		return routeLocatorBuilder.routes()
-				.route(p -> p
-						.path("/mybudget/accounts/**")
-						.filters(f -> f.rewritePath("/mybudget/accounts/(?<segment>.*)", "/${segment}")
-								.addResponseHeader("X-Response-Time", LocalDateTime.now().toString())
-								.requestRateLimiter(config -> config.setKeyResolver(userKeyResolver()))
-								.circuitBreaker(config -> config.setName("accountsCircuitBreaker")
-										.setFallbackUri("forward:/contactSupport")))
-						.uri("lb://ACCOUNTS"))
-				.route(p -> p
-						.path("/mybudget/transactions/**")
-						.filters(f -> f.rewritePath("/mybudget/transactions/(?<segment>.*)", "/${segment}")
-								.addResponseHeader("X-Response-Time", LocalDateTime.now().toString())
-								.requestRateLimiter(config -> config.setKeyResolver(userKeyResolver()))
-								.circuitBreaker(config -> config.setName("transactionsCircuitBreaker")
-										.setFallbackUri("forward:/contactSupport")))
-						.uri("lb://TRANSACTIONS"))
-				.route(p -> p
-						.path("/mybudget/api/orchestrator/**")
-						.filters(f -> f.rewritePath("/mybudget/api/orchestrator/(?<segment>.*)",
-										"/api/orchestrator/${segment}")
-								.addResponseHeader("X-Response-Time", LocalDateTime.now().toString())
-								.requestRateLimiter(config -> config.setKeyResolver(userKeyResolver()))
-								.circuitBreaker(config -> config.setName("orchestratorCircuitBreaker")
-										.setFallbackUri("forward:/contactSupport")))
-						.uri("lb://ORCHESTRATOR"))
-				.build();
-	}
-
-
-	@Bean
-	public Customizer<ReactiveResilience4JCircuitBreakerFactory> defaultCustomizer() {
-		return factory -> factory.configureDefault(id -> new Resilience4JConfigBuilder(id)
-				.circuitBreakerConfig(CircuitBreakerConfig.ofDefaults())
-				.timeLimiterConfig(TimeLimiterConfig.custom().timeoutDuration(Duration.ofSeconds(10))
-						.build()).build());
-	}
-
-	@Bean
-	public RedisRateLimiter redisRateLimiter() {
-		return new RedisRateLimiter(5,15 , 1);
-	}
-
-	@Bean
 	public KeyResolver userKeyResolver() {
 		return exchange ->
 				ReactiveSecurityContextHolder.getContext()
@@ -85,21 +29,25 @@ public class GatewayApplication {
 							if (auth != null && auth.isAuthenticated()) {
 								Object principal = auth.getPrincipal();
 								if (principal instanceof Jwt jwt) {
-									return Mono.just(jwt.getClaim("preferred_username"));
+									String key = jwt.getClaim("preferred_username");
+									logger.info("Resolved key: {}", key);
+									return Mono.just(key);
 								}
 							}
-							String ip = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-							if (ip == null) {
-								if (exchange.getRequest().getRemoteAddress() != null) {
-									ip = exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
-								} else {
-									ip = "unknown";
-								}
+							String xForwardedFor = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+							String clientIp = null;
+							if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+								clientIp = xForwardedFor.split(",")[0].trim();
+							} else if (exchange.getRequest().getRemoteAddress() != null) {
+								clientIp = exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
+							} else {
+								clientIp = "unknown";
 							}
-							return Mono.just(ip);
+							return Mono.just(clientIp);
 						})
-						.defaultIfEmpty("unknown")
-						.doOnNext(key -> logger.info("Resolved rate limit key: {}", key));
+						.defaultIfEmpty("unknown");
 	}
+
+
 
 }
