@@ -30,7 +30,7 @@ public class ResponseTraceFilter {
                     }
                     exchange.getResponse()
                             .getHeaders()
-                            .add(FilterUtility.CORRELATION_ID, cid);
+                            .set(FilterUtility.CORRELATION_ID, cid);
                 }));
     }
 }
