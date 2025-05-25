@@ -29,6 +29,13 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     private final UserService userService;
 
+    @GetMapping("/version")
+    public ResponseEntity<String> getVersion() {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body("java 17");
+    }
+
     @RateLimiter(name = "getUserProfile")
     @GetMapping("/users")
     public ResponseEntity<UserDto> getUserProfile(JwtAuthenticationToken jwtAuthToken ) {

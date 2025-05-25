@@ -32,6 +32,7 @@ public class SecurityConfig {
                         .requireCsrfProtectionMatcher(ServerWebExchangeMatchers.pathMatchers("/user", "/save"))
                 )
                 .authorizeExchange(exchange -> exchange
+                        .pathMatchers("/mybudget/accounts/api/version").permitAll()
                         .pathMatchers("/actuator/**").permitAll()
                         .pathMatchers("/mybudget/orchestrator/**").permitAll()
                         .pathMatchers("/mybudget/accounts/api/user/initialize").permitAll()
