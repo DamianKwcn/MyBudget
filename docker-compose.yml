@@ -3,6 +3,11 @@ version: '3.8'
 services:
   redis:
     image: redis:7.2
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
     container_name: redis
     ports:
       - "6379:6379"
@@ -12,6 +17,11 @@ services:
 
   mysql-kc:
     image: mysql:8.0.27
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
     container_name: mysql-kc
     env_file: "dock.env"
     ports:
@@ -31,6 +41,11 @@ services:
 
   keycloak-w:
     image: quay.io/keycloak/keycloak:25.0.0
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
     container_name: keycloak-w
     env_file: "dock.env"
     command: start-dev
@@ -61,6 +76,11 @@ services:
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -74,6 +94,11 @@ services:
   kafka1:
     image: confluentinc/cp-kafka:latest
     container_name: kafka1
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
     depends_on:
       - zookeeper
     ports:
@@ -92,6 +117,11 @@ services:
 
   kafka2:
     image: confluentinc/cp-kafka:latest
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
     container_name: kafka2
     depends_on:
       - zookeeper
@@ -112,6 +142,11 @@ services:
 
   kafka3:
     image: confluentinc/cp-kafka:latest
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
     container_name: kafka3
     depends_on:
       - zookeeper
