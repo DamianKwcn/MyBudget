@@ -32,6 +32,15 @@ spring:
                 redis-rate-limiter.burstCapacity: 15
                 redis-rate-limiter.requestedTokens: 1
                 key-resolver: "#{@userKeyResolver}"
+            - name: Retry
+              args:
+                retries: 2
+                statuses: BAD_GATEWAY, GATEWAY_TIMEOUT, SERVICE_UNAVAILABLE
+                methods: GET
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1s
+                  factor: 2
 
         - id: transactions
           uri: lb://TRANSACTIONS
@@ -51,25 +60,15 @@ spring:
                 redis-rate-limiter.burstCapacity: 15
                 redis-rate-limiter.requestedTokens: 1
                 key-resolver: "#{@userKeyResolver}"
-
-        - id: orchestrator
-          uri: lb://ORCHESTRATOR
-          predicates:
-            - Path=/mybudget/api/orchestrator/**
-          filters:
-            - RewritePath=/mybudget/api/orchestrator/(?<s>.*), /api/orchestrator/${s}
-            - name: CircuitBreaker
+            - name: Retry
               args:
-                name: orchestratorCircuitBreaker
-                fallbackUri: forward:/contactSupport
-                series:
-                  - SERVER_ERROR
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenishRate: 5
-                redis-rate-limiter.burstCapacity: 15
-                redis-rate-limiter.requestedTokens: 1
-                key-resolver: "#{@userKeyResolver}"
+                retries: 2
+                statuses: BAD_GATEWAY, GATEWAY_TIMEOUT, SERVICE_UNAVAILABLE
+                methods: GET
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1s
+                  factor: 2
 
   data:
     redis:

@@ -29,8 +29,11 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     private final UserService userService;
 
+    Logger logger = LoggerFactory.getLogger(UserController.class);
+
     @GetMapping("/version")
     public ResponseEntity<String> getVersion() {
+        logger.warn("GET /api/version was called!");
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body("java 17");
