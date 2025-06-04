@@ -1,0 +1,16 @@
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\event\transaction\TransactionSagaStartEvent.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\event\user\UserCreatedEvent.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\event\transaction\TransactionCreatedEvent.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\kafka\Topics.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\Main.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\event\transaction\TransactionRequestedEvent.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\enums\TransactionType.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\event\category\CategoryDefaultCreateEvent.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\event\category\CategoriesAfterUserDeleteEvent.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\event\transaction\TransactionRemovalStartedEvent.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\event\BalanceUpdateResultEvent.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\enums\TransactionStatus.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\event\BalanceUpdateRequestedEvent.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\event\transaction\TransactionConfirmEvent.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\event\transaction\TransactionsAfterUserDeleteEvent.java
+C:\Users\damia\IdeaProjects\MyBudget\common\src\main\java\com\mybudget\common\event\transaction\TransactionRollbackEvent.java
