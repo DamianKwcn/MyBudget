@@ -25,8 +25,8 @@ public class KeycloakRoleConverter implements Converter<Jwt, Collection<GrantedA
                     .toList());
         }
         Map<String, Object> resourceAccess = (Map<String, Object>) jwt.getClaims().get("resource_access");
-        if (resourceAccess != null && resourceAccess.containsKey("my-budget-ac")) {
-            Map<String, Object> clientAccess = (Map<String, Object>) resourceAccess.get("my-budget-ac");
+        if (resourceAccess != null && resourceAccess.containsKey("my-budget")) {
+            Map<String, Object> clientAccess = (Map<String, Object>) resourceAccess.get("my-budget");
             List<String> clientRoles = (List<String>) clientAccess.get("roles");
             authorities.addAll(clientRoles.stream()
                     .map(roleName -> "ROLE_" + roleName)

@@ -1,10 +1,14 @@
 version: '3.8'
 
 services:
-
   redis:
     image: redis:7.2
-    container_name: redis
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
+    container_name: redis-local
     ports:
       - "6379:6379"
     restart: unless-stopped
@@ -13,8 +17,14 @@ services:
 
   mysql-kc:
     image: mysql:8.0.27
-    container_name: mysql-kc
-    env_file: ".env"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
+    container_name: mysql-kc-local
+    env_file:
+      - env-local/.env.dev
     ports:
       - "3306:3306"
     restart: unless-stopped
@@ -35,8 +45,14 @@ services:
 
   keycloak-w:
     image: quay.io/keycloak/keycloak:25.0.0
-    container_name: keycloak-w
-    env_file: ".env"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
+    container_name: keycloak-w-local
+    env_file:
+      - env-local/.env.dev
     command: start-dev
     ports:
       - "7080:8080"
@@ -65,7 +81,12 @@ services:
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
-    container_name: zookeeper
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
+    container_name: zookeeper-local
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -77,7 +98,12 @@ services:
 
   kafka1:
     image: confluentinc/cp-kafka:latest
-    container_name: kafka1
+    container_name: kafka1-local
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
     depends_on:
       - zookeeper
     ports:
@@ -85,19 +111,23 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092,PLAINTEXT_INTERNAL://kafka1:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka1-local:29092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_DELETE_TOPIC_ENABLE: "true"
-    restart: unless-stopped
     networks:
       - app-network
 
   kafka2:
     image: confluentinc/cp-kafka:latest
-    container_name: kafka2
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
+    container_name: kafka2-local
     depends_on:
       - zookeeper
       - kafka1
@@ -106,19 +136,23 @@ services:
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9093,PLAINTEXT_INTERNAL://kafka2:29093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9093,PLAINTEXT_INTERNAL://kafka2-local:29093
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9093,PLAINTEXT_INTERNAL://0.0.0.0:29093
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_DELETE_TOPIC_ENABLE: "true"
-    restart: unless-stopped
     networks:
       - app-network
 
   kafka3:
     image: confluentinc/cp-kafka:latest
-    container_name: kafka3
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 5s
+    container_name: kafka3-local
     depends_on:
       - zookeeper
       - kafka1
@@ -127,127 +161,19 @@ services:
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9094,PLAINTEXT_INTERNAL://kafka3:29094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9094,PLAINTEXT_INTERNAL://kafka3-local:29094
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9094,PLAINTEXT_INTERNAL://0.0.0.0:29094
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_DELETE_TOPIC_ENABLE: "true"
-    restart: unless-stopped
     networks:
       - app-network
-
-  orchestrator:
-    build:
-      context: ./orchestrator
-    image: orchestrator
-    container_name: orchestrator
-    env_file:
-      - ./orchestrator.env
-    depends_on:
-      - configserver
-      - eurekaserver
-      - kafka1
-      - kafka2
-      - kafka3
-    networks:
-      - app-network
-    ports:
-      - "3333:3333"
-    restart: unless-stopped
-
-  configserver:
-    build:
-      context: ./configserver
-    image: configserver
-    container_name: configserver
-    ports:
-      - "8071:8071"
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  eurekaserver:
-    build:
-      context: ./eurekaserver
-    container_name: eurekaserver
-    env_file:
-      - ./eurekaserver-docker.env
-    ports:
-      - "8070:8070"
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  accounts:
-    build:
-      context: ./accounts
-    image: accounts
-    container_name: accounts
-    env_file:
-      - ./accounts.env
-    depends_on:
-      - mysql-kc
-      - configserver
-      - eurekaserver
-      - keycloak-w
-      - kafka1
-      - kafka2
-      - kafka3
-    networks:
-      - app-network
-    ports:
-      - "8080:8080"
-    restart: unless-stopped
-
-  transactions:
-    build:
-      context: ./transactions
-    image: transactions
-    container_name: transactions
-    env_file:
-      - ./transactions.env
-    depends_on:
-      - mysql-kc
-      - configserver
-      - eurekaserver
-      - keycloak-w
-      - kafka1
-      - kafka2
-      - kafka3
-    networks:
-      - app-network
-    ports:
-      - "8090:8090"
-    restart: unless-stopped
-
-  gatewayserver:
-    build:
-      context: ./gateway
-    image: gatewayserver
-    container_name: gatewayserver
-    env_file:
-      - /gatewayserver-docker.env
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    networks:
-      - app-network
-    ports:
-      - "8072:8072"
-    depends_on:
-      - redis
-      - mysql-kc
-      - configserver
-      - eurekaserver
-      - keycloak-w
-      - kafka1
-      - kafka2
-      - kafka3
-      - accounts
-      - transactions
 
 networks:
   app-network:
 
 volumes:
   keycloak-and-mysql-volume:
+
+##docker compose -p mybudget-local -f docker-compose.dev.yml up

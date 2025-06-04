@@ -1,1 +1,5 @@
-dock.env
+.env
+*.env
+*.env.*
+**/*.env
+**/*.env.*
