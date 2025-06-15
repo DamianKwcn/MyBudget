@@ -1,18 +1,18 @@
 spring:
   application:
-    name: "configserver"
+    name: ${APP_NAME}
 
   profiles:
-    active: git
+    active: ${SPRING_PROFILES_ACTIVE}
   cloud:
     config:
       server:
         git:
-          uri: "https://github.com/DamianKwcn/mybudget-config.git"
-          default-label: main
-          timeout: 5
-          clone-on-start: true
-          force-pull: true
+          uri: ${CONFIG_GIT_URI}
+          default-label: ${CONFIG_GIT_DEFAULT_LABEL}
+          timeout: ${CONFIG_GIT_TIMEOUT}
+          clone-on-start: ${CONFIG_GIT_CLONE_ON_START}
+          force-pull: ${CONFIG_GIT_FORCE_PULL}
 
 management:
   endpoints:
@@ -30,7 +30,7 @@ management:
         enabled: true
 
 encrypt:
-  key: "45D81EC1EF61DF9AD8D3E5BB397F9"
+  key: ${ENCRYPT_KEY}
 
 server:
-  port: 8071
+  port: ${SERVER_PORT}

@@ -1,0 +1,3 @@
+com\mybudget\orchestrator\OrchestratorApplication.class
+com\mybudget\orchestrator\config\KafkaConfig.class
+com\mybudget\orchestrator\listener\OrchestratorListener.class

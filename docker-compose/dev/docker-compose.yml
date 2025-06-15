@@ -3,11 +3,6 @@ version: '3.8'
 services:
   redis:
     image: redis:7.2
-    deploy:
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
-        delay: 5s
     container_name: redis-local
     ports:
       - "6379:6379"
@@ -17,24 +12,19 @@ services:
 
   mysql-kc:
     image: mysql:8.0.27
-    deploy:
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
-        delay: 5s
     container_name: mysql-kc-local
     env_file:
-      - env-local/.env.dev
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
       - "3306:3306"
     restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
-      - keycloak-and-mysql-volume:/var/lib/mysql
-      - ./init/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
-      - ./init/accountdb-schema.sql:/docker-entrypoint-initdb.d/accountdb-schema.sql:ro
-      - ./init/transactiondb-schema.sql:/docker-entrypoint-initdb.d/transactiondb-schema.sql:ro
+      - ../my-providers:/opt/keycloak/providers
+      - ../init/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+      - ../init/accountdb-schema.sql:/docker-entrypoint-initdb.d/accountdb-schema.sql:ro
+      - ../init/transactiondb-schema.sql:/docker-entrypoint-initdb.d/transactiondb-schema.sql:ro
     networks:
       - app-network
     healthcheck:
@@ -45,14 +35,9 @@ services:
 
   keycloak-w:
     image: quay.io/keycloak/keycloak:25.0.0
-    deploy:
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
-        delay: 5s
     container_name: keycloak-w-local
     env_file:
-      - env-local/.env.dev
+      - .env
     command: start-dev
     ports:
       - "7080:8080"
@@ -67,7 +52,7 @@ services:
       KC_FEATURES: token-exchange,admin-fine-grained-authz
       KC_HOSTNAME: ${KC_HOSTNAME}
     volumes:
-      - ./my-providers:/opt/keycloak/providers
+      - ../my-providers:/opt/keycloak/providers
     networks:
       - app-network
     depends_on:
@@ -81,33 +66,22 @@ services:
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
-    deploy:
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
-        delay: 5s
     container_name: zookeeper-local
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
     restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     networks:
       - app-network
 
   kafka1:
     image: confluentinc/cp-kafka:latest
     container_name: kafka1-local
-    deploy:
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
-        delay: 5s
-    depends_on:
-      - zookeeper
     ports:
       - "9092:9092"
+    restart: unless-stopped
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -117,22 +91,17 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_DELETE_TOPIC_ENABLE: "true"
+    depends_on:
+      - zookeeper
     networks:
       - app-network
 
   kafka2:
     image: confluentinc/cp-kafka:latest
-    deploy:
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
-        delay: 5s
     container_name: kafka2-local
-    depends_on:
-      - zookeeper
-      - kafka1
     ports:
       - "9093:9093"
+    restart: unless-stopped
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -142,22 +111,18 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_DELETE_TOPIC_ENABLE: "true"
+    depends_on:
+      - zookeeper
+      - kafka1
     networks:
       - app-network
 
   kafka3:
     image: confluentinc/cp-kafka:latest
-    deploy:
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
-        delay: 5s
     container_name: kafka3-local
-    depends_on:
-      - zookeeper
-      - kafka1
     ports:
       - "9094:9094"
+    restart: unless-stopped
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -167,6 +132,9 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_DELETE_TOPIC_ENABLE: "true"
+    depends_on:
+      - zookeeper
+      - kafka1
     networks:
       - app-network
 
@@ -175,5 +143,3 @@ networks:
 
 volumes:
   keycloak-and-mysql-volume:
-
-##docker compose -p mybudget-local -f docker-compose.dev.yml up

@@ -1,20 +1,19 @@
 server:
-  port: 3333
+  port: ${SERVER_PORT}
 
 spring:
   application:
-    name: "orchestrator"
-
+    name: ${APP_NAME}
   config:
-    import: optional:configserver:8071
+    import: optional:configserver:${CONFIG_SERVER_URL}
   kafka:
-    bootstrap-servers: "localhost:9092,localhost:9093,localhost:9094"
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     consumer:
-      group-id: "orchestrator-group"
+      group-id: ${KAFKA_CONSUMER_GROUP_ID}
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "*"
+        spring.json.trusted.packages: ${KAFKA_CONSUMER_TRUSTED_PACKAGES}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -30,12 +29,12 @@ endpoints:
 
 eureka:
   instance:
-    preferIpAddress: true
+    preferIpAddress: ${EUREKA_INSTANCE_PREFERIPADDRESS}
   client:
-    fetchRegistry: true
-    registerWithEureka: true
+    fetchRegistry: ${EUREKA_CLIENT_FETCHREGISTRY}
+    registerWithEureka: ${EUREKA_CLIENT_REGISTERWITHEUREKA}
     serviceUrl:
-      defaultZone: http://localhost:8070/eureka/
+      defaultZone: ${EUREKA_DEFAULT_ZONE}
 
 logging:
   level:
@@ -46,6 +45,6 @@ logging:
 
 info:
   app:
-    name: "accounts"
-    description: "MyBudget Accounts Application"
-    version: "0.0.1"
+    name: ${APP_NAME}
+    description: ${APP_DESCRIPTION}
+    version: ${APP_VERSION}
