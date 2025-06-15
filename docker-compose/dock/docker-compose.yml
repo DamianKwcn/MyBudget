@@ -1,0 +1,217 @@
+version: '3.8'
+
+services:
+
+  mysql-kc:
+    image: mysql:8.0
+    container_name: mysql-kc
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3306:3306"
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ../init/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+      - ../init/accountdb-schema.sql:/docker-entrypoint-initdb.d/accountdb-schema.sql:ro
+      - ../init/transactiondb-schema.sql:/docker-entrypoint-initdb.d/transactiondb-schema.sql:ro
+    networks:
+      - backend
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - backend
+
+  kafka1:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka1
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - backend
+
+  kafka2:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka2
+    depends_on:
+      - zookeeper
+    ports:
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - backend
+
+  kafka3:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka3
+    depends_on:
+      - zookeeper
+    ports:
+      - "9094:9094"
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - backend
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.3
+    container_name: keycloak
+    depends_on:
+      - mysql-kc
+    env_file:
+      - .env
+    environment:
+      KC_DB: mysql
+      KC_DB_URL: jdbc:mysql://mysql-kc:3306/keycloak
+      KC_DB_USERNAME: ${KC_DB_USERNAME}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KC_DB_DATABASE: keycloak
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME: keycloak
+    ports:
+      - "7080:8080"
+    command: start-dev
+    volumes:
+      - ../my-providers:/opt/keycloak/providers
+      - ../init/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+      - ../init/accountdb-schema.sql:/docker-entrypoint-initdb.d/accountdb-schema.sql:ro
+      - ../init/transactiondb-schema.sql:/docker-entrypoint-initdb.d/transactiondb-schema.sql:ro
+    networks:
+      - backend
+
+  configserver:
+    build:
+      context: ../../configserver
+      dockerfile: Dockerfile
+    container_name: configserver
+    depends_on:
+      - mysql-kc
+    env_file:
+      - configserver-docker.env
+    ports:
+      - "8071:8071"
+    networks:
+      - backend
+
+  eurekaserver:
+    build:
+      context: ../../eurekaserver
+      dockerfile: Dockerfile
+    container_name: eurekaserver
+    depends_on:
+      - configserver
+    env_file:
+      - eurekaserver-docker.env
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - backend
+
+  gatewayserver:
+    build: ../../gateway
+    container_name: gateway
+    env_file:
+      - gatewayserver-docker.env
+    ports:
+      - "8072:8072"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - backend
+
+  accounts:
+    build: ../../accounts
+    container_name: accounts
+    depends_on:
+      - mysql-kc
+      - kafka1
+      - kafka2
+      - kafka3
+      - configserver
+      - eurekaserver
+      - keycloak
+    env_file:
+      - accounts-docker.env
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+
+  orchestrator:
+    build: ../../orchestrator
+    container_name: orchestrator
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+      - configserver
+      - eurekaserver
+    env_file:
+      - orchestrator-docker.env
+    ports:
+      - "3333:3333"
+    networks:
+      - backend
+
+  transactions:
+    build: ../../transactions
+    container_name: transactions
+    depends_on:
+      - mysql-kc
+      - kafka1
+      - kafka2
+      - kafka3
+      - configserver
+      - eurekaserver
+      - keycloak
+    env_file:
+      - transactions-docker.env
+    ports:
+      - "8090:8090"
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  mysql_data:

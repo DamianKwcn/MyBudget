@@ -21,6 +21,7 @@ C:\Users\damia\IdeaProjects\MyBudget\transactions\src\main\java\com\mybudget\tra
 C:\Users\damia\IdeaProjects\MyBudget\transactions\src\main\java\com\mybudget\transactions\exception\InsufficientFundsException.java
 C:\Users\damia\IdeaProjects\MyBudget\transactions\src\main\java\com\mybudget\transactions\exception\ResourceAlreadyExistsException.java
 C:\Users\damia\IdeaProjects\MyBudget\transactions\src\main\java\com\mybudget\transactions\exception\ResourceNotFoundException.java
+C:\Users\damia\IdeaProjects\MyBudget\transactions\src\main\java\com\mybudget\transactions\filter\CorrelationIdFilter.java
 C:\Users\damia\IdeaProjects\MyBudget\transactions\src\main\java\com\mybudget\transactions\filter\CsrfCookieFilter.java
 C:\Users\damia\IdeaProjects\MyBudget\transactions\src\main\java\com\mybudget\transactions\listener\CategoryListener.java
 C:\Users\damia\IdeaProjects\MyBudget\transactions\src\main\java\com\mybudget\transactions\listener\Event\CategoriesAfterUserDeleteHandler.java

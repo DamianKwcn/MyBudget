@@ -5,7 +5,7 @@ spring:
   application:
     name: "gatewayserver"
   config:
-    import: "optional:configserver:http://localhost:8071/"
+    import: "optional:configserver:http://${CONFIG_SERVER_HOST}:8071/"
   cloud:
     gateway:
       discovery:

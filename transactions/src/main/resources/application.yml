@@ -3,9 +3,9 @@ server:
 
 spring:
   kafka:
-    bootstrap-servers: "localhost:9092,localhost:9093,localhost:9094"
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     consumer:
-      group-id: "transactions-group"
+      group-id: ${KAFKA_CONSUMER_GROUP_ID}
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
@@ -13,14 +13,18 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    topics:
+      user-deletion-commands: ${KAFKA_TOPIC_USER_DELETION_COMMANDS}
+      balance-update-requests: ${KAFKA_TOPIC_BALANCE_UPDATE_REQUESTS}
+      balance-update-result: ${KAFKA_TOPIC_BALANCE_UPDATE_RESULT}
 
   application:
-    name: "transactions"
+    name: ${APP_NAME}
   security:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: "${KEYCLOAK_JWK_SET_URI}"
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI}
       client:
         registration:
           keycloak:
@@ -32,10 +36,10 @@ spring:
             client-name: Keycloak
         provider:
           keycloak:
-            authorization-uri: "${KEYCLOAK_AUTHORIZATION_URI}"
-            token-uri: "${KEYCLOAK_TOKEN_URI}"
-            user-info-uri: "${KEYCLOAK_USERINFO_URI}"
-            jwk-set-uri: "${KEYCLOAK_JWK_SET_URI}"
+            authorization-uri: ${KEYCLOAK_AUTHORIZATION_URI}
+            token-uri: ${KEYCLOAK_TOKEN_URI}
+            user-info-uri: ${KEYCLOAK_USERINFO_URI}
+            jwk-set-uri: ${KEYCLOAK_JWK_SET_URI}
 
   datasource:
     url: ${DB_URL}
@@ -86,7 +90,6 @@ eureka:
 logging:
   pattern:
     level: "%5p [${spring.application.name},%X{cid}]"
-
   level:
     com.mybudget.transactions: DEBUG
     com.netflix.discovery: DEBUG
@@ -94,24 +97,24 @@ logging:
 keycloak:
   realm: ${KEYCLOAK_REALM}
   resource: ${KEYCLOAK_RESOURCE}
-  auth-server-url: "${KEYCLOAK_AUTH_SERVER_URL}"
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL}
   credentials:
     secret: ${KEYCLOAK_SECRET}
 
   cloud:
     openfeign:
       circuitbreaker:
-        enabled=true:
+        enabled: true
 
 resilience4j.ratelimiter:
   configs:
     default:
-      timeoutDuration: 1000
-      limitRefreshPeriod: 5000
-      limitForPeriod: 15
+      timeoutDuration: ${RESILIENCE4J_TIMEOUT_DURATION}
+      limitRefreshPeriod: ${RESILIENCE4J_LIMIT_REFRESH_PERIOD}
+      limitForPeriod: ${RESILIENCE4J_LIMIT_FOR_PERIOD}
 
 info:
   app:
-    name: "transactions"
-    description: "MyBudget Transactions Application"
-    version: "0.0.1"
+    name: ${APP_NAME}
+    description: ${APP_DESCRIPTION}
+    version: ${APP_VERSION}
