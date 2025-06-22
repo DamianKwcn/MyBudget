@@ -73,7 +73,7 @@ spring:
   data:
     redis:
       connect-timeout: 2s
-      host: localhost
+      host: ${REDIS_HOST}
       port: 6379
       timeout: 1s
 
@@ -81,7 +81,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: "http://localhost:7080/realms/my-budget/protocol/openid-connect/certs"
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI}
 
 management:
   endpoints:
