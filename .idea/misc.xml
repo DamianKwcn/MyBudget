@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ExternalStorageConfigurationManager" enabled="true" />
   <component name="MavenProjectsManager">
@@ -15,11 +16,14 @@
         <option value="$PROJECT_DIR$/common/pom.xml" />
         <option value="$PROJECT_DIR$/orchestrator/pom.xml" />
         <option value="$PROJECT_DIR$/docker-compose/keycloak-event-listener/pom.xml" />
+        <option value="$PROJECT_DIR$/docker-compose/dev/keycloak-event-listener/pom.xml" />
+        <option value="$PROJECT_DIR$/docker-compose/dock/keycloak-event-listener/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">
       <set>
         <option value="$PROJECT_DIR$/authentication/pom.xml" />
+        <option value="$PROJECT_DIR$/docker-compose/keycloak-event-listener/pom.xml" />
         <option value="$PROJECT_DIR$/event-listener/pom.xml" />
       </set>
     </option>
