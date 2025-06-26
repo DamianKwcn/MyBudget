@@ -9,37 +9,38 @@ services:
     deploy:
       resources:
         limits:
-          memory: 700m
+          memory: 1024m
+        reservations:
+          memory: 768m
 
   microservice-kafka-config:
     extends:
       service: microservice-base-config
     environment:
-      SPRING_PROFILES_ACTIVE: dock
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka1-local:9092,kafka2-local:9093,kafka3-local:9094
+      KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9093,kafka3:9094
 
   microservice-configserver-config:
     extends:
       service: microservice-base-config
     environment:
-      SPRING_PROFILES_ACTIVE: dock
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_CONFIG_IMPORT: configserver:http://configserver:8071/
 
   microservice-eureka-config:
     extends:
       service: microservice-configserver-config
+    depends_on:
+      eurekaserver:
+        condition: service_healthy
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8070/eureka/
 
   microservice-db-config:
     extends:
-      service: microservice-kafka-config
-    env_file:
-      - .env
+      service: network-deploy-service
+    image: mysql:8.0
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-kc:3306/${KC_DB_DATABASE}?serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: ${KC_DB_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${KC_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
 
   microservice-keycloak-config:
     extends:
