@@ -46,4 +46,4 @@ services:
     extends:
       service: microservice-db-config
     environment:
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak-w:8080/realms/mybudget
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak-w:7080/realms/mybudget

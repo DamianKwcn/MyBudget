@@ -1,12 +1,17 @@
-version: "3.9"
-
 services:
+
   mysql-kc:
     image: mysql:8.0
     container_name: mysql-kc
     restart: unless-stopped
     env_file:
       - .env
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} --silent" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
@@ -17,13 +22,6 @@ services:
       - ../init/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
       - ../init/accountdb-schema.sql:/docker-entrypoint-initdb.d/accountdb-schema.sql:ro
       - ../init/transactiondb-schema.sql:/docker-entrypoint-initdb.d/transactiondb-schema.sql:ro
-    healthcheck:
-      test:
-        [ "CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} --silent" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
     extends:
       file: common-config.yml
       service: microservice-kafka-config
@@ -45,14 +43,14 @@ services:
     container_name: kafka1
     depends_on:
       - zookeeper
+    ports:
+      - "9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    ports:
-      - "9092:9092"
     extends:
       file: common-config.yml
       service: microservice-kafka-config
@@ -62,14 +60,14 @@ services:
     container_name: kafka2
     depends_on:
       - zookeeper
+    ports:
+      - "9093:9093"
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9093
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    ports:
-      - "9093:9093"
     extends:
       file: common-config.yml
       service: microservice-kafka-config
@@ -79,14 +77,14 @@ services:
     container_name: kafka3
     depends_on:
       - zookeeper
+    ports:
+      - "9094:9094"
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9094
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    ports:
-      - "9094:9094"
     extends:
       file: common-config.yml
       service: microservice-kafka-config
@@ -103,7 +101,7 @@ services:
       retries: 5
 
   keycloak:
-    image: quay.io/keycloak/keycloak:25.0.0
+    image: quay.io/keycloak/keycloak:24.0.3
     container_name: keycloak
     env_file:
       - .env
@@ -121,16 +119,16 @@ services:
     depends_on:
       mysql-kc:
         condition: service_healthy
-    command: start-dev
-    volumes:
-      - ./my-providers:/opt/keycloak/providers
     healthcheck:
-      test:
-        [ "CMD-SHELL", "wget --spider --quiet http://localhost:8080/realms/master || exit 1" ]
+      test: >-
+        wget --spider --quiet http://localhost:8080/realms/master || exit 1
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 40s
+    command: start-dev
+    volumes:
+      - ./my-providers:/opt/keycloak/providers
     extends:
       file: common-config.yml
       service: microservice-eureka-config
@@ -149,8 +147,11 @@ services:
         condition: service_healthy
     healthcheck:
       test:
-        [ "CMD-SHELL",
-          "wget --spider --quiet http://localhost:8071/actuator/health/readiness || exit 1" ]
+        - CMD-SHELL
+        - |
+          wget --spider --quiet \
+            http://localhost:8071/actuator/health/readiness \
+            || exit 1
       interval: 30s
       timeout: 10s
       retries: 5
@@ -171,27 +172,29 @@ services:
       - eurekaserver-docker.env
     ports:
       - "8070:8070"
-    environment:
-      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8071/"
-      SPRING_PROFILES_ACTIVE: "docker"
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
-      SPRING_APPLICATION_NAME: "eurekaserver"
     healthcheck:
       test:
-        [ "CMD-SHELL",
-          "wget --spider --quiet http://localhost:8070/actuator/health/readiness || exit 1" ]
+        - CMD-SHELL
+        - |
+          # Sprawdzamy gotowość aplikacji                                                   
+          wget --spider --quiet \
+            http://localhost:8070/actuator/health/readiness \
+            || exit 1
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 30s
+    environment:
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8071/"
+      PRING_PROFILES_ACTIVE: "docker"
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
+      SPRING_APPLICATION_NAME: "eurekaserver"
     extends:
       file: common-config.yml
       service: microservice-base-config
 
   gatewayserver:
-    build:
-      context: ../../gateway
-      dockerfile: Dockerfile
+    build: ../../gateway
     container_name: gateway
     depends_on:
       transactions:
@@ -204,19 +207,27 @@ services:
       - "8072:8072"
     environment:
       SPRING_APPLICATION_NAME: "gatewayserver"
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI:
-        "http://keycloak:8080/realms/my-budget/protocol/openid-connect/certs"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI: "http://keycloak:8080/realms/my-budget/protocol/openid-connect/certs"
     extends:
       file: common-config.yml
       service: microservice-eureka-config
 
   accounts:
-    build:
-      context: ../../accounts
-      dockerfile: Dockerfile
+    build: ../../accounts
     container_name: accounts
     env_file:
       - accounts-docker.env
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |
+          wget --spider --quiet \
+            http://localhost:8080/actuator/health/readiness \
+            || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
     depends_on:
       configserver:
         condition: service_healthy
@@ -227,25 +238,26 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-kc:3306/accountdb?serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: ${KC_DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${KC_DB_PASSWORD}
-    healthcheck:
-      test:
-        [ "CMD-SHELL",
-          "wget --spider --quiet http://localhost:8080/actuator/health/readiness || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
     extends:
       file: common-config.yml
       service: microservice-eureka-config
 
   transactions:
-    build:
-      context: ../../transactions
-      dockerfile: Dockerfile
+    build: ../../transactions
     container_name: transactions
     env_file:
       - transactions-docker.env
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |
+          wget --spider --quiet \
+            http://localhost:8090/actuator/health/readiness \
+            || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
     depends_on:
       configserver:
         condition: service_healthy
@@ -256,22 +268,12 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-kc:3306/transactiondb?serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: ${KC_DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${KC_DB_PASSWORD}
-    healthcheck:
-      test:
-        [ "CMD-SHELL",
-          "wget --spider --quiet http://localhost:8090/actuator/health/readiness || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
     extends:
       file: common-config.yml
       service: microservice-eureka-config
 
   orchestrator:
-    build:
-      context: ../../orchestrator
-      dockerfile: Dockerfile
+    build: ../../orchestrator
     container_name: orchestrator
     depends_on:
       configserver:
@@ -291,4 +293,4 @@ networks:
     driver: bridge
 
 volumes:
-  mysql_data:
+  mysql_data: 
