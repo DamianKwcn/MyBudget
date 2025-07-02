@@ -27,7 +27,6 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(
-        path = "/api",
         produces = {MediaType.APPLICATION_JSON_VALUE})
 @Validated
 public class CategoryController {

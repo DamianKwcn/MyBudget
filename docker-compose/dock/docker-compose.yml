@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
 
   mysql-kc:
@@ -8,6 +6,12 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} --silent" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
@@ -18,8 +22,9 @@ services:
       - ../init/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
       - ../init/accountdb-schema.sql:/docker-entrypoint-initdb.d/accountdb-schema.sql:ro
       - ../init/transactiondb-schema.sql:/docker-entrypoint-initdb.d/transactiondb-schema.sql:ro
-    networks:
-      - backend
+    extends:
+      file: common-config.yml
+      service: microservice-kafka-config
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
@@ -29,8 +34,9 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
-    networks:
-      - backend
+    extends:
+      file: common-config.yml
+      service: microservice-kafka-config
 
   kafka1:
     image: confluentinc/cp-kafka:7.6.0
@@ -45,8 +51,9 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    networks:
-      - backend
+    extends:
+      file: common-config.yml
+      service: microservice-kafka-config
 
   kafka2:
     image: confluentinc/cp-kafka:7.6.0
@@ -61,8 +68,9 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9093
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    networks:
-      - backend
+    extends:
+      file: common-config.yml
+      service: microservice-kafka-config
 
   kafka3:
     image: confluentinc/cp-kafka:7.6.0
@@ -77,22 +85,24 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9094
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    networks:
-      - backend
+    extends:
+      file: common-config.yml
+      service: microservice-kafka-config
 
   redis:
     image: redis:7.2-alpine
     container_name: redis
     ports:
       - "6379:6379"
-    networks:
-      - backend
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   keycloak:
     image: quay.io/keycloak/keycloak:24.0.3
     container_name: keycloak
-    depends_on:
-      - mysql-kc
     env_file:
       - .env
     environment:
@@ -101,117 +111,182 @@ services:
       KC_DB_USERNAME: ${KC_DB_USERNAME}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
       KC_DB_DATABASE: keycloak
+      KC_FEATURES: token-exchange,admin-fine-grained-authz
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      KC_HOSTNAME: keycloak
+      KC_SPI_EVENTS_LISTENER_MY_CUSTOM_EVENT_LISTENER_BASE_URL: http://accounts:8080/user
     ports:
       - "7080:8080"
+    depends_on:
+      mysql-kc:
+        condition: service_healthy
+    healthcheck:
+      test: >-
+        wget --spider --quiet http://localhost:8080/realms/master || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
     command: start-dev
     volumes:
-      - ../my-providers:/opt/keycloak/providers
-      - ../init/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
-      - ../init/accountdb-schema.sql:/docker-entrypoint-initdb.d/accountdb-schema.sql:ro
-      - ../init/transactiondb-schema.sql:/docker-entrypoint-initdb.d/transactiondb-schema.sql:ro
-    networks:
-      - backend
+      - ./my-providers:/opt/keycloak/providers
+    extends:
+      file: common-config.yml
+      service: microservice-eureka-config
 
   configserver:
-    build:
-      context: ../../configserver
-      dockerfile: Dockerfile
+    image: daimyo0/my-budget:configserver
     container_name: configserver
-    depends_on:
-      - mysql-kc
     env_file:
       - configserver-docker.env
     ports:
       - "8071:8071"
-    networks:
-      - backend
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |
+          wget --spider --quiet \
+            http://localhost:8071/actuator/health/readiness \
+            || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    extends:
+      file: common-config.yml
+      service: microservice-base-config
 
   eurekaserver:
-    build:
-      context: ../../eurekaserver
-      dockerfile: Dockerfile
+    image: daimyo0/my-budget:eurekaserver
     container_name: eurekaserver
     depends_on:
-      - configserver
+      configserver:
+        condition: service_healthy
     env_file:
       - eurekaserver-docker.env
     ports:
-      - "8761:8761"
+      - "8070:8070"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |
+          wget --spider --quiet \
+            http://localhost:8070/actuator/health/readiness \
+            || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    networks:
-      - backend
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8071/"
+      PRING_PROFILES_ACTIVE: "docker"
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eurekaserver:8070/eureka/"
+      SPRING_APPLICATION_NAME: "eurekaserver"
+    extends:
+      file: common-config.yml
+      service: microservice-base-config
 
   gatewayserver:
-    build: ../../gateway
+    image: daimyo0/my-budget:gatewayserver
     container_name: gateway
+    depends_on:
+      transactions:
+        condition: service_healthy
+      accounts:
+        condition: service_healthy
     env_file:
       - gatewayserver-docker.env
     ports:
       - "8072:8072"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    networks:
-      - backend
+      SPRING_APPLICATION_NAME: "gatewayserver"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI: "http://keycloak:8080/realms/my-budget/protocol/openid-connect/certs"
+    extends:
+      file: common-config.yml
+      service: microservice-eureka-config
 
   accounts:
-    build: ../../accounts
+    image: daimyo0/my-budget:accounts
     container_name: accounts
-    depends_on:
-      - mysql-kc
-      - kafka1
-      - kafka2
-      - kafka3
-      - configserver
-      - eurekaserver
-      - keycloak
     env_file:
       - accounts-docker.env
-    ports:
-      - "8080:8080"
-    networks:
-      - backend
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |
+          wget --spider --quiet \
+            http://localhost:8080/actuator/health/readiness \
+            || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    depends_on:
+      configserver:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: accounts
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-kc:3306/accountdb?serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${KC_DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${KC_DB_PASSWORD}
+    extends:
+      file: common-config.yml
+      service: microservice-eureka-config
+
+  transactions:
+    image: daimyo0/my-budget:transactions
+    container_name: transactions
+    env_file:
+      - transactions-docker.env
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - |
+          wget --spider --quiet \
+            http://localhost:8090/actuator/health/readiness \
+            || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    depends_on:
+      configserver:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: transactions
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-kc:3306/transactiondb?serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${KC_DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${KC_DB_PASSWORD}
+    extends:
+      file: common-config.yml
+      service: microservice-eureka-config
 
   orchestrator:
-    build: ../../orchestrator
+    image: daimyo0/my-budget:orchestrator
     container_name: orchestrator
     depends_on:
-      - kafka1
-      - kafka2
-      - kafka3
-      - configserver
-      - eurekaserver
+      configserver:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_healthy
     env_file:
       - orchestrator-docker.env
     ports:
       - "3333:3333"
-    networks:
-      - backend
-
-  transactions:
-    build: ../../transactions
-    container_name: transactions
-    depends_on:
-      - mysql-kc
-      - kafka1
-      - kafka2
-      - kafka3
-      - configserver
-      - eurekaserver
-      - keycloak
-    env_file:
-      - transactions-docker.env
-    ports:
-      - "8090:8090"
-    networks:
-      - backend
+    extends:
+      file: common-config.yml
+      service: microservice-eureka-config
 
 networks:
-  backend:
+  mybudget:
     driver: bridge
 
 volumes:
-  mysql_data:
+  mysql_data: 
