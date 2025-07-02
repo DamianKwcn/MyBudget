@@ -115,7 +115,6 @@ services:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_SPI_EVENTS_LISTENER_MY_CUSTOM_EVENT_LISTENER_BASE_URL: http://accounts:8080/user
-
     ports:
       - "7080:8080"
     depends_on:
