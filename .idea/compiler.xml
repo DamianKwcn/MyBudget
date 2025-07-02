@@ -28,6 +28,8 @@
     <bytecodeTargetLevel>
       <module name="authentication" target="17" />
       <module name="event-listener" target="17" />
+      <module name="keycloak-event-listener (1)" target="17" />
+      <module name="keycloak-event-listener (2)" target="17" />
       <module name="sample_event_listener" target="1.8" />
     </bytecodeTargetLevel>
   </component>
