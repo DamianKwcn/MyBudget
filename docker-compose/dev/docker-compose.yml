@@ -1,34 +1,35 @@
-version: '3.8'
+version: "3.9"
 
 services:
   redis:
     image: redis:7.2
     container_name: redis-local
+    restart: unless-stopped
     ports:
       - "6379:6379"
-    restart: unless-stopped
     networks:
       - app-network
 
   mysql-kc:
     image: mysql:8.0.27
     container_name: mysql-kc-local
+    restart: unless-stopped
     env_file:
       - .env
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
       - "3306:3306"
-    restart: unless-stopped
     volumes:
-      - ../my-providers:/opt/keycloak/providers
+      - mysql_data:/var/lib/mysql
       - ../init/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
       - ../init/accountdb-schema.sql:/docker-entrypoint-initdb.d/accountdb-schema.sql:ro
       - ../init/transactiondb-schema.sql:/docker-entrypoint-initdb.d/transactiondb-schema.sql:ro
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      test:
+        [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -36,12 +37,12 @@ services:
   keycloak-w:
     image: quay.io/keycloak/keycloak:25.0.0
     container_name: keycloak-w-local
+    restart: unless-stopped
     env_file:
       - .env
     command: start-dev
     ports:
       - "7080:8080"
-    restart: unless-stopped
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
@@ -52,14 +53,15 @@ services:
       KC_FEATURES: token-exchange,admin-fine-grained-authz
       KC_HOSTNAME: ${KC_HOSTNAME}
     volumes:
-      - ../my-providers:/opt/keycloak/providers
+      - ./my-providers:/opt/keycloak/providers
     networks:
       - app-network
     depends_on:
       mysql-kc:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      test:
+        [ "CMD", "curl", "-f", "http://localhost:8080" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -67,9 +69,9 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     container_name: zookeeper-local
+    restart: unless-stopped
     ports:
       - "2181:2181"
-    restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -79,14 +81,18 @@ services:
   kafka1:
     image: confluentinc/cp-kafka:latest
     container_name: kafka1-local
+    restart: unless-stopped
     ports:
       - "9092:9092"
-    restart: unless-stopped
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka1-local:29092
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: >-
+        PLAINTEXT://localhost:9092,
+        PLAINTEXT_INTERNAL://kafka1-local:29092
+      KAFKA_LISTENERS: >-
+        PLAINTEXT://0.0.0.0:9092,
+        PLAINTEXT_INTERNAL://0.0.0.0:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
@@ -99,14 +105,18 @@ services:
   kafka2:
     image: confluentinc/cp-kafka:latest
     container_name: kafka2-local
+    restart: unless-stopped
     ports:
       - "9093:9093"
-    restart: unless-stopped
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9093,PLAINTEXT_INTERNAL://kafka2-local:29093
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9093,PLAINTEXT_INTERNAL://0.0.0.0:29093
+      KAFKA_ADVERTISED_LISTENERS: >-
+        PLAINTEXT://localhost:9093,
+        PLAINTEXT_INTERNAL://kafka2-local:29093
+      KAFKA_LISTENERS: >-
+        PLAINTEXT://0.0.0.0:9093,
+        PLAINTEXT_INTERNAL://0.0.0.0:29093
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
@@ -120,14 +130,18 @@ services:
   kafka3:
     image: confluentinc/cp-kafka:latest
     container_name: kafka3-local
+    restart: unless-stopped
     ports:
       - "9094:9094"
-    restart: unless-stopped
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9094,PLAINTEXT_INTERNAL://kafka3-local:29094
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9094,PLAINTEXT_INTERNAL://0.0.0.0:29094
+      KAFKA_ADVERTISED_LISTENERS: >-
+        PLAINTEXT://localhost:9094,
+        PLAINTEXT_INTERNAL://kafka3-local:29094
+      KAFKA_LISTENERS: >-
+        PLAINTEXT://0.0.0.0:9094,
+        PLAINTEXT_INTERNAL://0.0.0.0:29094
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
