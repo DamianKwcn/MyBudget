@@ -26,9 +26,9 @@ public class AccountsSecurityConfig {
         CsrfTokenRequestAttributeHandler csrfTokenRequestAttributeHandler = new CsrfTokenRequestAttributeHandler();
         http.sessionManagement(sessionConfig -> sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(csrfConfig -> csrfConfig.csrfTokenRequestHandler(csrfTokenRequestAttributeHandler)
-                        .ignoringRequestMatchers("/api/version")
-                        .ignoringRequestMatchers("/api/user/initialize")
-                        .ignoringRequestMatchers("/api/user/delete")
+                        .ignoringRequestMatchers("/version")
+                        .ignoringRequestMatchers("/user/initialize")
+                        .ignoringRequestMatchers("/user/delete")
                         .ignoringRequestMatchers("/actuator/**")
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
@@ -37,9 +37,9 @@ public class AccountsSecurityConfig {
                 .authorizeHttpRequests(
                         (requests) -> requests
                                 .requestMatchers("/actuator/**").permitAll()
-                                .requestMatchers("/api/user/initialize").permitAll()
-                                .requestMatchers("/api/user/delete").permitAll()
-                                .requestMatchers("/api/version").permitAll()
+                                .requestMatchers("/user/initialize").permitAll()
+                                .requestMatchers("/user/delete").permitAll()
+                                .requestMatchers("/version").permitAll()
                                 .anyRequest().authenticated()
                 );
         http.oauth2ResourceServer(rsc -> rsc.jwt(jwtConfigurer ->

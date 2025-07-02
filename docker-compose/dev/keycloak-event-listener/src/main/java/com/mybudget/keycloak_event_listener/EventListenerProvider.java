@@ -18,7 +18,7 @@ public class EventListenerProvider implements org.keycloak.events.EventListenerP
     private final String baseUrl;
 
     public EventListenerProvider(String baseUrl) {
-        this.baseUrl = (baseUrl != null ? baseUrl : "http://host.docker.internal:8080/api/user");
+        this.baseUrl = (baseUrl != null ? baseUrl : "http://host.docker.internal:8080/user");
     }
 
     @Override

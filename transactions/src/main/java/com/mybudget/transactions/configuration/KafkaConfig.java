@@ -69,7 +69,7 @@ public class KafkaConfig {
         factory.setCommonErrorHandler(
                 new DefaultErrorHandler(
                         new DeadLetterPublishingRecoverer(kafkaTemplate()),
-                        new FixedBackOff(2000L, 3) // 3 próby co 2 sekundy
+                        new FixedBackOff(2000L, 3)
                 )
         );
         return factory;

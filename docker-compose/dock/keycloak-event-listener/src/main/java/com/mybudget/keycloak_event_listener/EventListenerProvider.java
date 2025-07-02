@@ -18,7 +18,11 @@ public class EventListenerProvider implements org.keycloak.events.EventListenerP
     private final String baseUrl;
 
     public EventListenerProvider(String baseUrl) {
+<<<<<<< HEAD
         this.baseUrl = (baseUrl != null ? baseUrl : "http://accounts:8080/api/user");
+=======
+        this.baseUrl = (baseUrl != null ? baseUrl : "http://host.docker.internal:8080/user");
+>>>>>>> fix/dockerfile-image-fix
     }
 
     @Override

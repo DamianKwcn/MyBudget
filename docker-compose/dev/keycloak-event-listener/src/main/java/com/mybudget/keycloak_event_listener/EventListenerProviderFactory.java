@@ -15,7 +15,7 @@ public class EventListenerProviderFactory implements org.keycloak.events.EventLi
 
     @Override
     public void init(Config.Scope config) {
-        this.baseUrl = config.get("baseUrl", "http://host.docker.internal:8080/api/user");
+        this.baseUrl = config.get("baseUrl", "http://host.docker.internal:8080/user");
     }
 
 

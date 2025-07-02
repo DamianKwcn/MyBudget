@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(
-        path = "/api",
         produces = {MediaType.APPLICATION_JSON_VALUE})
 @Validated
 public class UserController {
@@ -33,7 +32,7 @@ public class UserController {
 
     @GetMapping("/version")
     public ResponseEntity<String> getVersion() {
-        logger.warn("GET /api/version was called!");
+        logger.warn("GET /version was called!");
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body("java 17");
