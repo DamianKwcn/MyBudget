@@ -16,13 +16,8 @@
         <option value="$PROJECT_DIR$/common/pom.xml" />
         <option value="$PROJECT_DIR$/orchestrator/pom.xml" />
         <option value="$PROJECT_DIR$/docker-compose/keycloak-event-listener/pom.xml" />
-<<<<<<< HEAD
-        <option value="$PROJECT_DIR$/docker-compose/dev/keycloak-event-listener/pom.xml" />
-        <option value="$PROJECT_DIR$/docker-compose/dock/keycloak-event-listener/pom.xml" />
-=======
         <option value="$PROJECT_DIR$/docker-compose/dock/keycloak-event-listener/pom.xml" />
         <option value="$PROJECT_DIR$/docker-compose/dev/keycloak-event-listener/pom.xml" />
->>>>>>> fix/dockerfile-image-fix
       </list>
     </option>
     <option name="ignoredFiles">
